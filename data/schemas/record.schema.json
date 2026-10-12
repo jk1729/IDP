@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "CompleteSensorReading",
+  "type": "object",
+  "required": ["schema_version", "timestamp", "sensors", "features", "risk"],
+  "properties": {
+    "schema_version": { "type": "string" },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "device_id": { "type": "string" },
+    "data_source": { "type": "string" },
+    "sensors": { "$ref": "raw_sensor_data.schema.json" },
+    "features": { "type": "object" },
+    "baseline_comparison": { "type": "object" },
+    "physiological": { "type": "object" },
+    "risk": { "type": "object" }
+  }
+}
+

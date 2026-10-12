@@ -1,0 +1,81 @@
+{
+  "schema_version": "1.0",
+  "timestamp": "2026-09-11T18:27:51.900Z",
+  "device_id": "SIMULATED_INSOLE_001",
+  "data_source": "SIMULATED_DATA",
+  "sensors": {
+    "timestamp": "2026-09-11T18:27:51.900Z",
+    "heel_fsr_raw": 683,
+    "forefoot_fsr_raw": 753,
+    "accel_x_mps2": -0.32930914630179897,
+    "accel_y_mps2": 0.20085780796727185,
+    "accel_z_mps2": 9.666016809113035,
+    "gyro_x_dps": -14.678091811946757,
+    "gyro_y_dps": -3.449554782521333,
+    "gyro_z_dps": -18.366600980038882,
+    "heart_rate_bpm": 126.42604661789582,
+    "temperature_c": 30.121537096669254,
+    "device_id": "SIMULATED_INSOLE_001",
+    "data_source": "SIMULATED_DATA",
+    "schema_version": "1.0"
+  },
+  "features": {
+    "heel_loading_filtered": 1142.2,
+    "forefoot_loading_filtered": 1259.8,
+    "total_loading": 2402.0,
+    "heel_percentage": 47.55203996669442,
+    "forefoot_percentage": 52.44796003330558,
+    "heel_forefoot_imbalance": -0.048959200666111535,
+    "acceleration_magnitude_mps2": 9.673710215161254,
+    "acceleration_filtered_mps2": 10.23432493610061,
+    "step_count": 493,
+    "cadence_steps_per_min": 0.0,
+    "gait_cycle_duration_s": 0.0,
+    "stance_time_s": 0.0,
+    "impact_mps2": 0.0,
+    "angular_motion_dps": 23.76295097410083,
+    "gait_angle_deg": -1.9512411138371768,
+    "heart_rate_filtered_bpm": 124.56892927373244,
+    "temperature_filtered_c": 30.144319157145553,
+    "hr_deviation_bpm": 0.0,
+    "temperature_deviation_c": 0.0
+  },
+  "baseline_comparison": {
+    "loading_deviation_raw": -478.9307222222219,
+    "loading_deviation_score": 0.3050358144431681,
+    "gait_angle_deviation_raw": -1.864839459801014,
+    "gait_angle_deviation_score": 0.3323250773145026,
+    "impact_deviation_raw": -0.6171812162624907,
+    "impact_deviation_score": 0.2261021455692922,
+    "gait_cycle_deviation_raw": -0.3636,
+    "gait_cycle_abnormality_score": 1.0
+  },
+  "physiological": {
+    "hr_base_bpm": 122.8109300521517,
+    "temperature_base_c": 30.201676813589447,
+    "hr_current_bpm": 124.56892927373244,
+    "temperature_current_c": 30.144319157145553,
+    "hr_delta_bpm": 1.7579992215807323,
+    "temperature_delta_c": -0.057357656443894456,
+    "dehydration_risk_score_raw": 2.3688453142835755,
+    "dehydration_risk_score_normalized": 0.023688453142835755,
+    "heuristic_name": "Prototype dehydration-risk heuristic",
+    "heuristic_version": "0.1"
+  },
+  "risk": {
+    "timestamp": "2026-09-11T18:27:51.900Z",
+    "injury_risk_score": 0.4351,
+    "physiological_risk_score": 0.0237,
+    "injury_risk_state": "MODERATE",
+    "physiological_risk_state": "LOW",
+    "abnormality_detected": true,
+    "abnormality_types": [
+      "LOADING_OR_GAIT_DEVIATION"
+    ],
+    "persistence_status": "OBSERVED",
+    "persistence_duration_s": 0.0,
+    "vibration_alert": false,
+    "vibration_reason": "Persistence or score threshold not reached",
+    "model_version": "prototype-0.1"
+  }
+}

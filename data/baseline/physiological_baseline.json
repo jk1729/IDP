@@ -1,0 +1,11 @@
+{
+  "athlete_id": "ATHLETE_001",
+  "hr_base": 71.99250914409514,
+  "hr_std": 0.46475881070697606,
+  "temperature_base": 30.000381424784166,
+  "temperature_std": 0.01502262616289279,
+  "baseline_duration_seconds": 120,
+  "sample_count": 1200,
+  "created_at": "2026-09-11T18:38:51.485Z",
+  "baseline_version": "physio-baseline-v1"
+}

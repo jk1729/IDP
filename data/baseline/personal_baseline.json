@@ -1,0 +1,133 @@
+{
+  "athlete_id": "ATHLETE_001",
+  "created_at": "2026-09-11T18:32:59.888Z",
+  "duration_seconds": 9.9,
+  "sample_count": 100,
+  "baseline_version": "baseline-v1",
+  "features": {
+    "heel_filtered": {
+      "mean": 939.1033333333332,
+      "std": 521.676397555675,
+      "minimum": 158.66666666666666,
+      "maximum": 1753.3333333333333,
+      "count": 100
+    },
+    "forefoot_filtered": {
+      "mean": 1093.3816666666667,
+      "std": 614.5334455661828,
+      "minimum": 170.66666666666666,
+      "maximum": 2489.5,
+      "count": 100
+    },
+    "total_loading": {
+      "mean": 2032.485,
+      "std": 1020.4569589418153,
+      "minimum": 386.33333333333337,
+      "maximum": 3666.5,
+      "count": 100
+    },
+    "heel_percentage": {
+      "mean": 46.7733288969262,
+      "std": 16.324207009414007,
+      "minimum": 7.240380637153495,
+      "maximum": 78.39143942008975,
+      "count": 100
+    },
+    "forefoot_percentage": {
+      "mean": 53.2266711030738,
+      "std": 16.324207009414007,
+      "minimum": 21.608560579910254,
+      "maximum": 92.75961936284651,
+      "count": 100
+    },
+    "loading_imbalance": {
+      "mean": 13.851324705028675,
+      "std": 9.22127674508661,
+      "minimum": 0.030461800901676384,
+      "maximum": 42.75961936284651,
+      "count": 100
+    },
+    "cadence": {
+      "mean": 16.43835616438356,
+      "std": 0.0,
+      "minimum": 16.43835616438356,
+      "maximum": 16.43835616438356,
+      "count": 3
+    },
+    "step_interval": {
+      "mean": 3.6500000000000004,
+      "std": 2.45,
+      "minimum": 1.2000000000000002,
+      "maximum": 6.1000000000000005,
+      "count": 2
+    },
+    "gait_cycle_duration": {
+      "mean": 3.6500000000000004,
+      "std": 2.45,
+      "minimum": 1.2000000000000002,
+      "maximum": 6.1000000000000005,
+      "count": 2
+    },
+    "contact_duration": {
+      "mean": 0.987,
+      "std": 0.7602177319689406,
+      "minimum": 0.0,
+      "maximum": 2.7,
+      "count": 100
+    },
+    "contact_ratio": {
+      "mean": 1.0,
+      "std": 0.0,
+      "minimum": 1.0,
+      "maximum": 1.0,
+      "count": 95
+    },
+    "impact_peak": {
+      "mean": 1.2324929039585744,
+      "std": 0.0,
+      "minimum": 1.2324929039585744,
+      "maximum": 1.2324929039585744,
+      "count": 100
+    },
+    "impact_mean": {
+      "mean": 0.542973496269148,
+      "std": 0.0,
+      "minimum": 0.542973496269148,
+      "maximum": 0.542973496269148,
+      "count": 100
+    },
+    "angular_motion_mean": {
+      "mean": 22.595900936563734,
+      "std": 0.0,
+      "minimum": 22.595900936563734,
+      "maximum": 22.595900936563734,
+      "count": 100
+    },
+    "angular_motion_peak": {
+      "mean": 24.786231404996286,
+      "std": 0.0,
+      "minimum": 24.78623140499629,
+      "maximum": 24.78623140499629,
+      "count": 100
+    },
+    "heart_rate": {
+      "mean": 97.24181852189751,
+      "std": 10.120053169334007,
+      "minimum": 72.82643305268384,
+      "maximum": 109.12486427087937,
+      "count": 100
+    },
+    "temperature": {
+      "mean": 30.17572345966209,
+      "std": 0.09517528207303308,
+      "minimum": 29.992292351719115,
+      "maximum": 30.327782180259664,
+      "count": 100
+    }
+  },
+  "calibration_activity": {
+    "physiological": "REST where available, otherwise all samples",
+    "gait": "WALKING where available, otherwise all samples",
+    "outlier_rule": "Remove values beyond N population standard deviations"
+  }
+}

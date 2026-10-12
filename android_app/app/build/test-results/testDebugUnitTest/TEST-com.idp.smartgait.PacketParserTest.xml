@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.idp.smartgait.PacketParserTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2026-09-16T13:11:50" hostname="JAGAN" time="0.051">
+  <properties/>
+  <testcase name="parsesRisk" classname="com.idp.smartgait.PacketParserTest" time="0.05"/>
+  <testcase name="rejectsWrongType" classname="com.idp.smartgait.PacketParserTest" time="0.0"/>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>

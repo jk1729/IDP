@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "RawSensorData",
+  "type": "object",
+  "required": [
+    "timestamp",
+    "heel_fsr_raw",
+    "forefoot_fsr_raw",
+    "accel_x_mps2",
+    "accel_y_mps2",
+    "accel_z_mps2",
+    "gyro_x_dps",
+    "gyro_y_dps",
+    "gyro_z_dps",
+    "heart_rate_bpm",
+    "temperature_c"
+  ],
+  "properties": {
+    "timestamp": { "type": "string", "format": "date-time" },
+    "heel_fsr_raw": { "type": "integer", "minimum": 0, "maximum": 4095 },
+    "forefoot_fsr_raw": { "type": "integer", "minimum": 0, "maximum": 4095 },
+    "accel_x_mps2": { "type": "number" },
+    "accel_y_mps2": { "type": "number" },
+    "accel_z_mps2": { "type": "number" },
+    "gyro_x_dps": { "type": "number" },
+    "gyro_y_dps": { "type": "number" },
+    "gyro_z_dps": { "type": "number" },
+    "heart_rate_bpm": { "type": "number", "minimum": 0, "maximum": 300 },
+    "temperature_c": { "type": "number", "minimum": -40, "maximum": 125 },
+    "device_id": { "type": "string" },
+    "data_source": { "type": "string" },
+    "schema_version": { "type": "string" }
+  }
+}
+

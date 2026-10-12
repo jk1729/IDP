@@ -1,0 +1,2769 @@
+================================================================================
+SMART GAIT MONITORING AND EARLY INJURY-RISK DETECTION SYSTEM
+COMPLETE APPLICATION STUDY GUIDE
+================================================================================
+
+Project:   Smart Gait Monitoring and Early Injury-Risk Detection System
+Package:   com.idp.smartgait
+Platform:  Android (Kotlin / Jetpack Compose)
+Location:  D:\IDP\android_app
+Author:    IDP Student Project
+
+This study guide was created by reading every actual source file in the project.
+Every class name, function name, UUID, variable name, and data structure mentioned
+below comes directly from the source code.
+
+Legend:
+  [VERIFIED]     = Confirmed by reading the source file
+  [INFERRED]     = Logically deduced from code patterns but not explicitly stated
+  [NOT VERIFIED] = Cannot be confirmed without running on a device/build
+
+
+================================================================================
+PHASE 1 — COMPLETE PROJECT INVENTORY
+================================================================================
+
+1.1 FOLDER STRUCTURE
+--------------------
+
+D:\IDP\android_app\
+  |-- README.md                          (Project description, 745 bytes)
+  |-- build.gradle.kts                   (Root build file, 228 bytes)
+  |-- settings.gradle.kts                (Project settings, 282 bytes)
+  |-- gradle.properties                  (Gradle configuration, 106 bytes)
+  |-- gradlew.bat                        (Gradle wrapper script for Windows)
+  |-- local.properties                   (SDK path, DO NOT share)
+  |-- gradle/
+  |   |-- wrapper/
+  |       |-- gradle-wrapper.properties  (Gradle 8.7 from local file)
+  |
+  |-- app/
+      |-- build.gradle.kts              (App build config, 1443 bytes)
+      |-- src/
+          |-- main/
+          |   |-- AndroidManifest.xml    (Permissions and activity declaration)
+          |   |-- res/
+          |   |   |-- values/
+          |   |       |-- styles.xml     (Base Android theme, 112 bytes)
+          |   |
+          |   |-- java/com/idp/smartgait/
+          |       |-- MainActivity.kt               (App entry point)
+          |       |-- ble/
+          |       |   |-- BleUuids.kt                (BLE UUID constants)
+          |       |   |-- BleScanner.kt              (BLE device scanner)
+          |       |   |-- BleConnection.kt           (GATT connection wrapper)
+          |       |   |-- BleManager.kt              (Scanner + connection manager)
+          |       |   |-- GattDataSource.kt          (Full GATT data source)
+          |       |-- protocol/
+          |       |   |-- Packets.kt                 (Data classes for BLE packets)
+          |       |   |-- PacketParser.kt            (JSON byte-to-object parser)
+          |       |-- repository/
+          |       |   |-- BleRepository.kt           (Repository interface + impl)
+          |       |   |-- SimulationSource.kt        (Simulated data generator)
+          |       |-- data/
+          |       |   |-- Models.kt                  (App state and data models)
+          |       |   |-- UserPreferences.kt         (DataStore auth/profile)
+          |       |-- viewmodel/
+          |       |   |-- MainViewModel.kt           (Central state management)
+          |       |-- ui/
+          |           |-- Screens.kt                 (Original/old UI, still exists)
+          |           |-- theme/
+          |           |   |-- Color.kt               (Color palette)
+          |           |   |-- Type.kt                (Typography)
+          |           |   |-- Theme.kt               (Material 3 dark theme)
+          |           |-- components/
+          |           |   |-- Components.kt          (Reusable UI widgets)
+          |           |   |-- Charts.kt              (Line chart components)
+          |           |-- navigation/
+          |           |   |-- AppNavigation.kt       (NavHost + bottom nav)
+          |           |-- screens/
+          |               |-- SplashScreen.kt        (Animated splash)
+          |               |-- OnboardingScreen.kt    (3-page introduction)
+          |               |-- LoginScreen.kt         (Email/password login)
+          |               |-- SignUpScreen.kt        (Account creation)
+          |               |-- ForgotPasswordScreen.kt(Prototype notice)
+          |               |-- ProfileSetupScreen.kt  (Profile form after signup)
+          |               |-- DashboardScreen.kt     (Main overview)
+          |               |-- LiveScreen.kt          (Real-time monitoring)
+          |               |-- GaitScreen.kt          (Gait-specific analysis)
+          |               |-- HistoryScreen.kt       (Session history + detail)
+          |               |-- PhysiologicalScreen.kt (HR/temp monitoring)
+          |               |-- ProfileScreen.kt       (Edit profile)
+          |               |-- SettingsScreen.kt      (Device info + settings)
+          |
+          |-- test/java/com/idp/smartgait/
+              |-- CommandCodecTest.kt    (Tests command JSON encoding)
+              |-- CommandsAndStateTest.kt(Tests command wire values + stale state)
+              |-- PacketParserTest.kt    (Tests JSON packet parsing)
+              |-- SimulationTest.kt      (Tests simulation emits labeled packets)
+
+
+1.2 TOTAL FILE COUNT
+--------------------
+
+  Source files (.kt):      31  [VERIFIED]
+  Test files (.kt):         4  [VERIFIED]
+  XML files:                2  (AndroidManifest.xml + styles.xml) [VERIFIED]
+  Build/config files:       6  (2 build.gradle.kts + settings + gradle.properties
+                                + gradle-wrapper.properties + local.properties)
+  Other:                    2  (README.md + gradlew.bat)
+  ---
+  TOTAL:                   45 files approximately
+
+
+1.3 ENTRY POINT
+---------------
+
+File:    MainActivity.kt
+Class:   MainActivity
+Extends: ComponentActivity  (from AndroidX Activity library)
+
+What it does:
+  1. Requests Bluetooth permissions at startup
+  2. Calls setContent { SmartGaitTheme { AppNavigation(mainViewModel) } }
+  3. Creates MainViewModel using ViewModelProvider
+
+[VERIFIED] from MainActivity.kt lines 15-64
+
+
+1.4 DEPENDENCIES (from app/build.gradle.kts)
+---------------------------------------------
+
+All dependencies [VERIFIED] from app/build.gradle.kts:
+
+  CORE:
+  - androidx.core:core-ktx:1.13.1           (Kotlin extensions for Android)
+  - androidx.activity:activity-compose:1.9.2 (ComponentActivity for Compose)
+
+  COMPOSE:
+  - androidx.compose:compose-bom:2024.09.00  (Bill of Materials - version alignment)
+  - androidx.compose.ui:ui                   (Core Compose UI)
+  - androidx.compose.ui:ui-tooling-preview   (Preview support)
+  - androidx.compose.material3:material3     (Material Design 3 components)
+  - androidx.compose.material:material-icons-extended  (Icon library)
+
+  LIFECYCLE:
+  - androidx.lifecycle:lifecycle-runtime-compose:2.8.4   (collectAsState, etc.)
+  - androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4 (viewModel() helper)
+
+  COROUTINES:
+  - org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1
+
+  SERIALIZATION:
+  - org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3
+
+  NAVIGATION:
+  - androidx.navigation:navigation-compose:2.7.7
+
+  DATA STORAGE:
+  - androidx.datastore:datastore-preferences:1.1.1
+
+  TESTING:
+  - junit:junit:4.13.2
+  - org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1
+
+
+1.5 GRADLE PLUGINS
+------------------
+
+Root build.gradle.kts declares these plugins (apply false = don't apply here):
+  - com.android.application        version 8.5.2   (Android Gradle Plugin)
+  - org.jetbrains.kotlin.android   version 1.9.24  (Kotlin for Android)
+  - org.jetbrains.kotlin.plugin.serialization version 1.9.24
+
+App build.gradle.kts applies them:
+  - com.android.application
+  - org.jetbrains.kotlin.android
+  - org.jetbrains.kotlin.plugin.serialization
+
+
+1.6 SDK VERSIONS AND BUILD CONFIG
+----------------------------------
+
+  compileSdk  = 35      (Android 15)
+  minSdk      = 26      (Android 8.0 Oreo)
+  targetSdk   = 35      (Android 15)
+  versionCode = 1
+  versionName = "1.0"
+  applicationId = "com.idp.smartgait"
+  namespace     = "com.idp.smartgait"
+  Kotlin JVM toolchain = 17
+  Compose compiler extension = 1.5.14
+  Gradle version = 8.7 (from local file C:/Gradle/gradle-8.7-bin.zip)
+
+
+1.7 PERMISSIONS (from AndroidManifest.xml)
+------------------------------------------
+
+[VERIFIED] from AndroidManifest.xml:
+
+  1. android.hardware.bluetooth_le  (feature, required=false)
+  2. BLUETOOTH                      (maxSdkVersion=30, for Android 11 and below)
+  3. BLUETOOTH_ADMIN                (maxSdkVersion=30, for Android 11 and below)
+  4. BLUETOOTH_SCAN                 (neverForLocation flag, Android 12+)
+  5. BLUETOOTH_CONNECT              (Android 12+)
+  6. ACCESS_COARSE_LOCATION         (maxSdkVersion=30)
+  7. ACCESS_FINE_LOCATION           (maxSdkVersion=30)
+  8. POST_NOTIFICATIONS             (Android 13+)
+
+Why two sets of permissions?
+  - Android 12 (API 31) changed Bluetooth permissions. Before Android 12, you
+    needed BLUETOOTH + BLUETOOTH_ADMIN + location permissions. From Android 12+,
+    you need BLUETOOTH_SCAN + BLUETOOTH_CONNECT instead.
+  - maxSdkVersion=30 means the old permissions are only declared for devices
+    running Android 11 or lower.
+
+
+================================================================================
+PHASE 2 — COMPLETE APP ARCHITECTURE
+================================================================================
+
+2.1 ARCHITECTURE PATTERN: MVVM
+-------------------------------
+
+The app uses MVVM (Model-View-ViewModel):
+
+  MODEL (Data layer):
+    - Packets.kt         -> RiskPacket, LiveDataPacket, StatusPacket
+    - Models.kt          -> AppState, ConnectionState, SessionSummary, Baseline
+    - UserPreferences.kt -> DataStore-based authentication and profile
+
+  VIEW (UI layer):
+    - All files in ui/screens/  -> Composable functions
+    - Components.kt, Charts.kt -> Reusable UI components
+    - Theme files              -> Color, Typography, Theme
+
+  VIEWMODEL (Logic layer):
+    - MainViewModel.kt -> Holds AppState, handles user actions
+    - Repository        -> Data source abstraction
+
+  The ViewModel does NOT know about the UI.
+  The UI observes the ViewModel's StateFlow using collectAsState().
+  The ViewModel talks to the Repository, not directly to BLE or simulation.
+
+
+2.2 DATA FLOW DIAGRAM
+-----------------------
+
+  HARDWARE (ESP32 sensors)
+       |
+       | BLE GATT notifications (JSON bytes)
+       v
+  GattDataSource / BleConnection / BleScanner
+       |
+       | Pair<UUID, ByteArray>
+       v
+  PacketParser (JSON -> data class)
+       |
+       | RiskPacket / LiveDataPacket / StatusPacket
+       v
+  Repository (implements RiskRepository interface)
+       |
+       | Flow<RiskPacket>, Flow<LiveDataPacket>, Flow<StatusPacket>
+       v
+  MainViewModel
+       |
+       | StateFlow<AppState>
+       v
+  UI Screens (Composable functions observe state)
+
+  NOTE: In the current running app, the Repository uses SimulationSource
+  (not real BLE) because no real ESP32 hardware is connected. The simulation
+  generates fake data every 1 second.
+
+
+2.3 HOW DATA FLOWS IN SIMULATION MODE (WHAT ACTUALLY RUNS)
+-----------------------------------------------------------
+
+[VERIFIED] Step-by-step from source code:
+
+1. MainActivity creates MainViewModel via ViewModelProvider
+
+2. MainViewModel constructor creates Repository() with default SimulationSource()
+
+3. MainViewModel.init block calls repository.start() in a coroutine
+
+4. Repository.start() does:
+   - Sets connection state to CONNECTED
+   - Launches a coroutine that calls simulation.packets().collect { ... }
+   - For each RiskPacket received from simulation:
+     a. Emits the RiskPacket via _risks flow
+     b. DERIVES a LiveDataPacket from the risk values:
+        - hr = 72 + physio * 0.4
+        - temp = 36.6 + physio * 0.01
+        - heel = 420 * (1 - imbalance * 0.25)    where imbalance = injury/100
+        - forefoot = 310 * (1 + imbalance * 0.25)
+        - acc = 1.21 (constant)
+        - cad = 168 (constant)
+        - mode = "SIMULATION"
+     c. Emits a StatusPacket:
+        - device = "SMART_GAIT_001"
+        - firmware = "0.8.0"
+        - battery = 97
+        - connected = true
+        - sensor_ready = false
+        - mode = "SIMULATION"
+
+5. MainViewModel collects all three flows in separate coroutines:
+   - risks.collect -> updates AppState.risk and AppState.riskHistory (max 60 items)
+   - lives.collect -> updates AppState.live and AppState.samples (max 60 items)
+   - statuses.collect -> updates AppState.status
+
+6. UI screens call vm.state.collectAsState() to get the latest AppState
+   and display the values.
+
+
+2.4 COROUTINES IN THE PROJECT
+------------------------------
+
+Coroutines are used for:
+  1. SimulationSource: Uses flow { while(true) { emit(); delay(1000) } }
+  2. Repository: Uses CoroutineScope(Dispatchers.Default).launch to collect
+  3. MainViewModel: Uses viewModelScope.launch for each flow collector
+  4. UserPreferences: All DataStore operations are suspend functions
+  5. UI screens: Use rememberCoroutineScope() + scope.launch for login/signup
+
+Key coroutine concepts used:
+  - Flow: A cold asynchronous stream (SimulationSource.packets())
+  - SharedFlow: A hot flow that can have multiple collectors (Repository flows)
+  - StateFlow: A hot flow that always has a current value (AppState)
+  - viewModelScope: Automatically cancelled when ViewModel is cleared
+  - collect: Terminal operator that receives each emitted value
+
+
+2.5 DEPENDENCY CREATION (NO DEPENDENCY INJECTION FRAMEWORK)
+------------------------------------------------------------
+
+The project does NOT use Hilt, Dagger, or Koin.
+
+How dependencies are created:
+  - MainViewModel default-constructs Repository() in its constructor parameter
+  - Repository default-constructs SimulationSource() in its constructor parameter
+  - UserPreferences is created manually in AppNavigation using context.dataStore
+  - BleManager/GattDataSource are created manually (not used in simulation mode)
+
+This is simple "manual dependency injection" through constructor parameters.
+
+
+================================================================================
+PHASE 3 — FILE-BY-FILE DETAILED EXPLANATION
+================================================================================
+
+--- PROTOCOL LAYER (2 files) ---
+
+3.1 protocol/Packets.kt (67 lines)
+------------------------------------
+[VERIFIED] Source file: protocol/Packets.kt
+
+PURPOSE: Defines the data classes that represent the JSON packets sent by the
+ESP32 firmware over BLE.
+
+CLASSES:
+
+  1. RiskPacket (annotated @Serializable)
+     Fields:
+       - type: String = "risk"          (packet type identifier)
+       - ts: Long = 0                   (timestamp in milliseconds)
+       - injury: Float = 0f             (injury risk score, 0-100)
+       - injury_level: String = ""      ("LOW", "MODERATE", or "HIGH")
+       - physio: Float = 0f             (physiological risk score, 0-100)
+       - physio_level: String = ""
+       - overall: Float = 0f            (combined risk score, 0-100)
+       - overall_level: String = ""
+       - status: String = ""            ("SIMULATION" or real status)
+       - alert: Boolean = false         (true when risk is HIGH)
+       - alert_type: String = ""        ("BOTH", "INJURY", "PHYSIO", "NONE")
+       - priority: String = ""          ("HIGH" or "LOW")
+       - message: String = ""           (human-readable message)
+
+  2. LiveDataPacket (annotated @Serializable)
+     Fields:
+       - type: String = "live"
+       - ts: Long = 0
+       - hr: Float? = null              (heart rate in BPM, nullable)
+       - temp: Float? = null            (body temperature in Celsius)
+       - heel: Float? = null            (heel FSR pressure reading)
+       - forefoot: Float? = null        (forefoot FSR pressure reading)
+       - acc: Float? = null             (acceleration in m/s squared)
+       - cad: Float? = null             (cadence in steps/min)
+       - mode: String = ""
+
+  3. StatusPacket (annotated @Serializable)
+     Fields:
+       - type: String = "status"
+       - device: String = ""            (device name, e.g. "SMART_GAIT_001")
+       - firmware: String = ""          (firmware version, e.g. "0.8.0")
+       - battery: Int = 0               (battery percentage)
+       - connected: Boolean = false
+       - uptime: Long = 0
+       - sensor_ready: Boolean = false
+       - mode: String = ""
+
+  4. CommandPacket (annotated @Serializable)
+     Fields:
+       - command: String                (command name to send to ESP32)
+
+  5. BleCommand (data class, NOT @Serializable)
+     Fields:
+       - wire: String                   (the raw wire format string)
+     NOTE: This is a DIFFERENT class from the BleCommand enum in BleRepository.kt.
+     They can coexist because they are in different packages.
+
+  6. CommandCodec (singleton object)
+     Function:
+       - encode(command: String): String
+         Serializes a CommandPacket to JSON string
+         Example: encode("PING") returns {"command":"PING"}
+
+
+3.2 protocol/PacketParser.kt (9 lines)
+----------------------------------------
+[VERIFIED] Source file: protocol/PacketParser.kt
+
+PURPOSE: Parses raw byte arrays (from BLE) into typed packet objects.
+
+CLASS: PacketParser (singleton object)
+
+Internal JSON config:
+  - ignoreUnknownKeys = true   (won't crash if JSON has extra fields)
+  - isLenient = true           (allows relaxed JSON parsing)
+
+Functions:
+  - risk(bytes: ByteArray): RiskPacket?
+    Converts bytes to string, deserializes to RiskPacket,
+    returns null if type != "risk" or if parsing fails.
+
+  - live(bytes: ByteArray): LiveDataPacket?
+    Same pattern, returns null if type != "live".
+
+  - status(bytes: ByteArray): StatusPacket?
+    Same pattern, returns null if type != "status".
+
+All three use runCatching { ... }.getOrNull() so parsing errors return null
+instead of crashing.
+
+
+--- DATA LAYER (2 files) ---
+
+3.3 data/Models.kt (47 lines)
+-------------------------------
+[VERIFIED] Source file: data/Models.kt
+
+PURPOSE: Defines the core data models for app state.
+
+  1. ConnectionState (enum)
+     Values: DISCONNECTED, SCANNING, CONNECTING, CONNECTED, ERROR
+
+  2. RiskState (data class)
+     - packet: RiskPacket? = null     (latest risk packet)
+     - receivedAt: Long = 0           (when it was received)
+     - stale: Boolean = false         (true if data is old)
+
+  3. SessionSummary (data class)
+     - startedAt: Long                (session start timestamp)
+     - endedAt: Long                  (session end timestamp)
+     - averageHr: Float?              (average heart rate during session)
+     - averageTemp: Float?            (average temperature)
+     - averageCadence: Float?         (average cadence)
+     - peakOverall: Float             (highest overall risk seen)
+     - peakInjury: Float              (highest injury risk)
+     - peakPhysio: Float              (highest physio risk)
+     - finalLevel: String             (risk level at end: "LOW"/"MODERATE"/"HIGH")
+     - durationMs: Long (computed property) = endedAt - startedAt
+
+  4. Baseline (data class)
+     - hr: Float                      (baseline heart rate)
+     - temp: Float                    (baseline temperature)
+     - heel: Float?                   (baseline heel pressure)
+     - forefoot: Float?               (baseline forefoot pressure)
+
+  5. AppState (data class) - THE CENTRAL STATE OBJECT
+     - connection: ConnectionState
+     - deviceName: String?
+     - risk: RiskState
+     - live: LiveDataPacket?
+     - status: StatusPacket?
+     - simulation: Boolean
+     - error: String?
+     - monitoring: Boolean            (true during an active session)
+     - sessionStartedAt: Long?
+     - history: List<SessionSummary>  (recorded sessions)
+     - samples: List<LiveDataPacket>  (recent sensor readings, max 60)
+     - riskHistory: List<RiskPacket>  (recent risk values, max 60)
+     - baseline: Baseline?
+     - calibrating: Boolean
+     - calibrationProgress: Int       (0-100)
+     - message: String?               (snackbar message)
+
+  6. UserProfile (data class)
+     - name: String
+     - email: String
+     - age: Int
+     - height: Float                  (in cm)
+     - weight: Float                  (in kg)
+     - activityType: String
+
+
+3.4 data/UserPreferences.kt (122 lines)
+-----------------------------------------
+[VERIFIED] Source file: data/UserPreferences.kt
+
+PURPOSE: Local prototype authentication and user profile persistence using
+Android DataStore Preferences.
+
+TOP-LEVEL EXTENSION:
+  val Context.dataStore by preferencesDataStore(name = "smart_gait_prefs")
+  This creates a SINGLE DataStore instance per process.
+  The actual file is stored at:
+    /data/data/com.idp.smartgait/files/datastore/smart_gait_prefs.preferences_pb
+
+PREFERENCE KEYS (all in private companion object):
+  - IS_LOGGED_IN       (Boolean)
+  - ONBOARDING_DONE    (Boolean)
+  - USER_NAME          (String)
+  - USER_EMAIL         (String)
+  - PASSWORD_HASH      (String) - uses String.hashCode(), NOT cryptographically secure
+  - USER_AGE           (Int)
+  - USER_HEIGHT        (Float)
+  - USER_WEIGHT        (Float)
+  - ACTIVITY_TYPE      (String)
+
+FLOW PROPERTIES (reactive, automatically update when data changes):
+  - isLoggedIn: Flow<Boolean>
+  - onboardingComplete: Flow<Boolean>
+  - userProfile: Flow<UserProfile>
+
+SUSPEND FUNCTIONS (one-shot reads):
+  - isLoggedInNow(): Boolean
+  - isOnboardingDone(): Boolean
+  - getUserProfile(): UserProfile
+
+ACTIONS (modify data):
+  - completeOnboarding() -> sets ONBOARDING_DONE = true
+  - signup(name, email, password) -> stores name, email, password hash; logs in
+  - login(email, password) -> checks email match and password hash match
+  - logout() -> sets IS_LOGGED_IN = false
+  - saveProfile(profile) -> saves all UserProfile fields
+
+IMPORTANT SECURITY NOTE:
+  The password hashing uses String.hashCode() which is NOT cryptographically
+  secure. This is explicitly documented in the source code as a prototype
+  limitation.
+
+
+--- REPOSITORY LAYER (2 files) ---
+
+3.5 repository/SimulationSource.kt (29 lines)
+-----------------------------------------------
+[VERIFIED] Source file: repository/SimulationSource.kt
+
+PURPOSE: Generates simulated risk data for testing without real hardware.
+
+ENUM: SimulationScenario
+  Values: SMOOTH, ELEVATED, ALERT
+
+CLASS: SimulationSource
+  Constructor parameters:
+    - intervalMs: Long = 1000   (emit interval, default 1 second)
+    - scenario: SimulationScenario = SMOOTH  (mutable property)
+
+  Function: packets(): Flow<RiskPacket>
+    Creates an infinite flow that emits one RiskPacket per intervalMs.
+
+  Score calculation per scenario:
+    SMOOTH:   score = 25 + (counter % 10) * 2     -> range: 25 to 43
+    ELEVATED: score = 62 + (counter % 5) * 3      -> range: 62 to 74
+    ALERT:    score = 90                           -> fixed at 90
+
+  Risk level determination:
+    score >= 70  -> "HIGH"
+    score >= 40  -> "MODERATE"
+    else         -> "LOW"
+
+  The emitted RiskPacket includes:
+    - injury = score
+    - physio = min(score + 5, 100)
+    - overall = min(score + 2, 100)
+    - All three levels = same level
+    - status = "SIMULATION"
+    - alert = true when level is "HIGH"
+    - alert_type = "BOTH" when HIGH, else "NONE"
+    - message = "Simulated data; prototype risk estimation, not a diagnosis."
+
+
+3.6 repository/BleRepository.kt (29 lines)
+--------------------------------------------
+[VERIFIED] Source file: repository/BleRepository.kt
+
+PURPOSE: Defines the repository interface and provides the simulation-based
+implementation.
+
+INTERFACE: RiskRepository
+  Properties (all Flow):
+    - risks: Flow<RiskPacket>
+    - lives: Flow<LiveDataPacket>
+    - statuses: Flow<StatusPacket>
+    - connection: Flow<ConnectionState>
+  Functions:
+    - start(): suspend
+    - stop(): suspend
+    - sendCommand(command: BleCommand): suspend -> Boolean
+    - selectScenario(s: SimulationScenario)
+
+ENUM: BleCommand (different from BleCommand data class in Packets.kt)
+  Values and wire strings:
+    PING             -> "PING"
+    GET_STATUS       -> "GET_STATUS"
+    START_SESSION    -> "START_SESSION"
+    STOP_SESSION     -> "STOP_SESSION"
+    START_CALIBRATION -> "START_CALIBRATION"
+    STOP_CALIBRATION -> "STOP_CALIBRATION"
+    VIBRATE_TEST     -> "VIBRATE_TEST"
+    CALIBRATE        -> "CALIBRATE"
+
+CLASS: Repository (implements RiskRepository)
+  Uses MutableSharedFlow for risks, lives, statuses (hot flows)
+  Uses MutableStateFlow for connection state
+
+  start():
+    - Guards against double-start (if job?.isActive == true) return
+    - Sets connection = CONNECTED
+    - Launches coroutine collecting simulation.packets()
+    - For each RiskPacket, derives LiveDataPacket and StatusPacket
+    - LiveDataPacket derivation formula:
+        hr = 72 + physio * 0.4
+        temp = 36.6 + physio * 0.01
+        heel = 420 * (1 - imbalance * 0.25)
+        forefoot = 310 * (1 + imbalance * 0.25)
+        acc = 1.21 (hardcoded)
+        cad = 168 (hardcoded)
+      where imbalance = (injury / 100).coerceIn(0, 1)
+
+  stop(): Cancels the coroutine job
+  sendCommand(): Always returns true (simulation stub)
+  selectScenario(): Updates simulation.scenario property
+
+
+--- BLE LAYER (5 files) ---
+
+3.7 ble/BleUuids.kt (11 lines)
+--------------------------------
+[VERIFIED] Source file: ble/BleUuids.kt
+
+PURPOSE: Stores all BLE UUID constants and the device name.
+
+  DEVICE_NAME = "SMART_GAIT_001"
+
+  SERVICE:   7e3a0001-5e8d-4f4a-9a9b-1a2b3c4d5e01
+  LIVE_DATA: 7e3a0002-5e8d-4f4a-9a9b-1a2b3c4d5e01
+  RISK:      7e3a0003-5e8d-4f4a-9a9b-1a2b3c4d5e01
+  STATUS:    7e3a0004-5e8d-4f4a-9a9b-1a2b3c4d5e01
+  COMMAND:   7e3a0005-5e8d-4f4a-9a9b-1a2b3c4d5e01
+
+  The UUIDs follow a custom scheme: 7e3a000X where X = 1-5.
+  These must EXACTLY match the UUIDs defined in the ESP32 firmware.
+
+
+3.8 ble/BleScanner.kt (17 lines)
+----------------------------------
+[VERIFIED] Source file: ble/BleScanner.kt
+
+PURPOSE: Scans for the specific BLE device named "SMART_GAIT_001".
+
+CLASS: BleScanner
+  Constructor:
+    - adapter: BluetoothAdapter
+    - onDevice: (ScanResult) -> Unit       (callback when device found)
+    - onError: (Int) -> Unit               (callback on scan failure)
+
+  Uses ScanFilter.Builder().setDeviceName(DEVICE_NAME) to filter only
+  for the project's device.
+
+  Scan mode: SCAN_MODE_LOW_LATENCY (fastest scanning).
+
+  All Bluetooth calls are wrapped in try-catch for SecurityException
+  (in case permission was revoked).
+
+
+3.9 ble/BleConnection.kt (77 lines)
+-------------------------------------
+[VERIFIED] Source file: ble/BleConnection.kt
+
+PURPOSE: Wraps a single GATT connection to a Bluetooth device.
+
+  - connect(): Calls device.connectGatt() with the provided callback
+  - close(): Closes the GATT connection
+  - onConnected(): Triggers service discovery
+  - onCharacteristicChanged(): Emits received data as Pair<UUID, ByteArray>
+  - write(): Writes command bytes to the COMMAND characteristic
+
+  Uses SharedFlow with extraBufferCapacity=16 for received packets.
+
+
+3.10 ble/BleManager.kt (39 lines)
+-----------------------------------
+[VERIFIED] Source file: ble/BleManager.kt
+
+PURPOSE: Higher-level manager that owns the scanner and one GATT connection.
+
+  State machine:
+    scan() -> SCANNING
+    connect() -> stops scan, CONNECTING -> CONNECTED (on callback)
+    close() -> DISCONNECTED
+
+  The BleManager creates BleScanner and BleConnection internally.
+  It provides a StateFlow<ConnectionState> for the UI to observe.
+
+
+3.11 ble/GattDataSource.kt (259 lines)
+----------------------------------------
+[VERIFIED] Source file: ble/GattDataSource.kt
+
+PURPOSE: The most complete BLE implementation. Full GATT data source with
+permission checking, service discovery, notification subscription, and
+command writing.
+
+  Constructor: context: Context, device: BluetoothDevice
+
+  Key features:
+  1. Permission checking: Uses ContextCompat.checkSelfPermission() before
+     every Bluetooth operation.
+
+  2. connect(): Calls device.connectGatt(context, false, callback)
+
+  3. BluetoothGattCallback implementation:
+     a. onConnectionStateChange: On connect -> discoverServices().
+        On disconnect -> emits error.
+     b. onServicesDiscovered: Subscribes to NOTIFICATIONS on three
+        characteristics: LIVE_DATA, RISK, STATUS.
+        Uses the standard CCCD descriptor UUID: 00002902-0000-1000-8000-00805f9b34fb
+        Writes ENABLE_NOTIFICATION_VALUE to each descriptor.
+     c. onCharacteristicChanged: Emits Pair<UUID, ByteArray>
+     d. onCharacteristicRead: Emits Pair<UUID, ByteArray> on success
+
+  4. writeCommand(): Encodes BleCommand to JSON using CommandCodec,
+     writes to COMMAND characteristic.
+
+  NOTE: GattDataSource is NOT currently used by the running app.
+  The Repository class uses SimulationSource instead. GattDataSource is
+  the class that WOULD be used when connecting to real hardware.
+
+
+--- VIEWMODEL LAYER (1 file) ---
+
+3.12 viewmodel/MainViewModel.kt (62 lines)
+--------------------------------------------
+[VERIFIED] Source file: viewmodel/MainViewModel.kt
+
+PURPOSE: Central state management. Holds AppState in a StateFlow.
+
+CLASS: MainViewModel extends ViewModel
+
+CONSTRUCTOR: Takes RiskRepository (defaults to Repository())
+
+STATE:
+  - _state: MutableStateFlow<AppState>    (private, mutable)
+  - state: StateFlow<AppState>            (public, read-only)
+  - _selectedScenario: MutableStateFlow<SimulationScenario>
+  - selectedScenario: StateFlow<SimulationScenario>
+  - _selectedSession: MutableStateFlow<SessionSummary?>
+  - selectedSession: StateFlow<SessionSummary?>
+
+INIT BLOCK (runs when ViewModel is created):
+  Launches 5 coroutines in viewModelScope:
+  1. Collect repository.risks -> update AppState.risk + riskHistory (max 60)
+  2. Collect repository.lives -> update AppState.live + samples (max 60)
+  3. Collect repository.statuses -> update AppState.status
+  4. Collect repository.connection -> update AppState.connection
+  5. Call repository.start() (begins data flow)
+
+FUNCTIONS:
+
+  command(command: BleCommand):
+    Routes commands to appropriate handler:
+    - START_SESSION -> startMonitoring()
+    - STOP_SESSION -> stopMonitoring()
+    - START_CALIBRATION or CALIBRATE -> calibrate()
+    - Others -> repository.sendCommand()
+
+  startMonitoring():
+    - Guards: if already monitoring, return
+    - Sets monitoring=true, records sessionStartedAt, message="Monitoring active"
+    - Sends START_SESSION to repository
+
+  stopMonitoring():
+    - Guards: if not monitoring, return
+    - Creates SessionSummary from current samples and riskHistory
+    - Summary includes: averages of HR/temp/cadence, peaks of risk scores,
+      final risk level
+    - Adds summary to history (max 20 sessions)
+    - Sets monitoring=false, message="Session complete"
+    - Sends STOP_SESSION to repository
+
+  calibrate():
+    - Guards: if already calibrating, return
+    - Sets calibrating=true, progress=0
+    - Simulates calibration: repeats 5 times with 400ms delay, incrementing
+      progress by 20% each time
+    - After completion: takes last 10 samples, averages HR, temp, heel, forefoot
+      to create Baseline
+    - Sets calibrating=false, stores baseline
+    - Sends START_CALIBRATION to repository
+
+  scenario(s: SimulationScenario):
+    - Calls repository.selectScenario(s)
+    - Updates _selectedScenario
+    - Sets message like "Smooth simulation selected"
+
+  markStale(now, timeout=5000):
+    - Marks risk data as stale if it's older than timeout milliseconds
+
+  selectSession(session): Sets _selectedSession
+  clearMessage(): Sets message to null
+
+  onCleared(): Stops repository when ViewModel is destroyed
+
+PRIVATE EXTENSION:
+  List<Float>.averageOrNull(): Returns null if empty, otherwise average as Float
+
+
+--- UI ENTRY POINT (1 file) ---
+
+3.13 MainActivity.kt (64 lines)
+---------------------------------
+[VERIFIED] Source file: MainActivity.kt
+
+PURPOSE: The single Activity in the app. Entry point.
+
+  1. onCreate():
+     a. Checks Android version (Build.VERSION_CODES.S = Android 12 = API 31)
+     b. If Android 12+: Requests BLUETOOTH_SCAN and BLUETOOTH_CONNECT
+     c. If older: Requests ACCESS_FINE_LOCATION
+     d. Uses ActivityCompat.requestPermissions() with request codes 1001/1002
+
+  2. setContent:
+     - Wraps everything in SmartGaitTheme (custom dark theme)
+     - Creates MainViewModel via ViewModelProvider
+     - Calls AppNavigation(mainViewModel)
+
+  NOTE: The app has a single Activity with no Fragments. All "screens" are
+  Composable functions managed by Jetpack Navigation.
+
+
+--- NAVIGATION (1 file) ---
+
+3.14 ui/navigation/AppNavigation.kt (approx 170 lines)
+--------------------------------------------------------
+[VERIFIED] Source file: ui/navigation/AppNavigation.kt
+
+PURPOSE: Defines the complete navigation graph and bottom navigation.
+
+ROUTES (in order of navigation):
+  "splash"          -> SplashScreen
+  "onboarding"      -> OnboardingScreen
+  "login"           -> LoginScreen
+  "signup"          -> SignUpScreen
+  "forgot_password" -> ForgotPasswordScreen
+  "profile_setup"   -> ProfileSetupScreen
+  "main"            -> MainApp (with bottom navigation)
+
+NAVIGATION FLOW:
+  splash -> checks auth state:
+    - If logged in -> "main"
+    - If onboarding done but not logged in -> "login"
+    - If first time -> "onboarding"
+  onboarding -> "login" (marks onboarding done)
+  login -> "main" (on success) / "signup" / "forgot_password"
+  signup -> "profile_setup" (on success)
+  profile_setup -> "main"
+  main -> "login" (on logout, pops entire back stack)
+
+BOTTOM NAVIGATION TABS (in MainApp):
+  Index 0: Dashboard  (Icons.Rounded.Dashboard)
+  Index 1: Live       (Icons.Rounded.Analytics)
+  Index 2: Gait       (Icons.Rounded.DirectionsWalk)
+  Index 3: History    (Icons.Rounded.History)
+  Index 4: Profile    (Icons.Rounded.Person)
+
+  Tab 4 (Profile) actually shows SettingsScreen (not a separate ProfileScreen).
+  When leaving the History tab, selectedSession is cleared.
+
+  Messages from AppState are shown as Snackbar notifications via SnackbarHostState.
+
+
+--- THEME (3 files) ---
+
+3.15 ui/theme/Color.kt (approx 50 lines)
+------------------------------------------
+[VERIFIED] Defines the color palette:
+
+  Navy palette (dark backgrounds):
+    NavyDark    = #0B1426    (darkest, main background)
+    NavyMedium  = #132036    (bottom nav, surfaces)
+    NavyLight   = #1C2D44    (borders, dividers)
+    NavyCard    = #172A42    (card backgrounds)
+
+  Electric Blue (accent):
+    ElectricBlue      = #00B4D8
+    ElectricBlueDark  = #0077B6
+    ElectricBlueLight = #90E0EF
+    ElectricBlueGlow  = #48CAE4
+
+  Text colors:
+    TextPrimary   = #E8EDF3  (main text, light)
+    TextSecondary = #8899AA  (secondary text, gray)
+    TextMuted     = #5A6577  (muted text, darker gray)
+
+  Risk colors:
+    RiskLow      = #00E676   (green)
+    RiskModerate = #FFB300   (amber)
+    RiskHigh     = #FF5252   (red)
+
+  Utility functions:
+    riskColor(value)   -> returns RiskHigh/Moderate/Low based on score
+    riskBgColor(value) -> returns dark background variant
+    riskLevel(value)   -> returns "HIGH"/"MODERATE"/"LOW" string
+
+  Risk thresholds: LOW = 0-39, MODERATE = 40-69, HIGH = 70-100
+
+
+3.16 ui/theme/Type.kt (approx 20 lines)
+-----------------------------------------
+[VERIFIED] Defines SmartGaitTypography with all Material 3 text styles.
+  - displayLarge: 48sp Bold, -1sp letter spacing
+  - displayMedium: 36sp Bold
+  - displaySmall: 28sp Bold
+  - headlineLarge: 24sp Bold
+  - headlineMedium: 20sp SemiBold
+  - headlineSmall: 18sp SemiBold
+  - titleLarge: 16sp SemiBold
+  - titleMedium: 14sp Medium
+  - titleSmall: 12sp Medium
+  - bodyLarge: 16sp, 24sp line height
+  - bodyMedium: 14sp, 20sp line height
+  - bodySmall: 12sp, 16sp line height
+  - labelLarge: 14sp SemiBold, 0.5sp spacing
+  - labelMedium: 12sp Medium
+  - labelSmall: 10sp Medium
+
+
+3.17 ui/theme/Theme.kt (approx 50 lines)
+------------------------------------------
+[VERIFIED] Defines SmartGaitTheme composable.
+  - Uses darkColorScheme (always dark, no light mode)
+  - Maps all custom colors to Material 3 color roles
+  - Sets status bar color to NavyDark
+  - Sets navigation bar color to NavyMedium
+  - Light status/navigation bars = false (white icons on dark background)
+  - Applies SmartGaitTypography
+
+
+--- COMPONENTS (2 files) ---
+
+3.18 ui/components/Components.kt (approx 280 lines)
+-----------------------------------------------------
+[VERIFIED] Reusable composable components:
+
+  1. SectionHeader(title) - Gray label for section titles
+  2. PrimaryButton(text, onClick) - Electric blue button, 52dp height
+  3. SecondaryButton(text, onClick) - Outlined button
+  4. MetricCard(icon, label, value, unit) - Card showing a single metric
+  5. RiskGauge(score, level) - Circular arc gauge (0-100 scale)
+     - 270-degree arc from 135 to 405 degrees
+     - Animated score with tween(800ms)
+     - Shows numeric score and level text in center
+  6. RiskCard(title, score, level) - Card with risk score and level badge
+  7. AlertCard(alertType, message) - Red warning card
+  8. ConnectionIndicator(state) - Shows BLE connection status with icon + dot
+  9. SimulationBadge() - "SIMULATION" label in blue
+  10. EmptyState(title, subtitle) - Centered message for empty data
+  11. LoadingState(message) - Spinner with message
+  12. AppLogo() - Concentric circles (Canvas) + "SMART GAIT" text
+  13. DisclaimerFooter() - "Prototype risk estimation - not a medical diagnosis."
+  14. Float.fmt() extension - Formats float to 1 decimal place (e.g. "72.5")
+
+
+3.19 ui/components/Charts.kt (approx 130 lines)
+--------------------------------------------------
+[VERIFIED] Chart composable components:
+
+  1. ChartCard(title, values, minY, maxY, lineColor, unit)
+     - Card with title, current value, and line chart
+  2. DualChartCard(title, first, second, minY, maxY)
+     - Two overlaid lines with legend dots (Heel vs Forefoot)
+  3. LineChart(values, minY, maxY, color)
+     - Raw Canvas-based line chart
+  4. RiskChartCard(title, values)
+     - Wrapper around ChartCard with 0-100 range
+
+  The charts use Canvas drawing with Path for the line and
+  drawCircle for the end dot. No external charting library is used.
+
+
+--- SCREENS (13 files + 1 old file) ---
+
+3.20 ui/screens/SplashScreen.kt
+---------------------------------
+[VERIFIED] Animated splash screen.
+  - Shows AppLogo with fade-in + scale-in animation (1 second)
+  - Waits 2.2 seconds total
+  - Checks auth state and navigates to "main", "login", or "onboarding"
+  - Background: NavyDark
+
+3.21 ui/screens/OnboardingScreen.kt
+-------------------------------------
+[VERIFIED] 3-page horizontal pager.
+  Pages:
+    1. "Gait Monitoring" - Walking icon - FSR sensor description
+    2. "Physiological Tracking" - Heart icon - HR/temp description
+    3. "Early Risk Detection" - Shield icon - Risk estimation description
+  Features: Skip button, Back/Next navigation, dots indicator, "Get Started" on last page
+
+3.22 ui/screens/LoginScreen.kt
+--------------------------------
+[VERIFIED] Email/password login form.
+  Features:
+    - Email field with validation (blank, format check)
+    - Password field with show/hide toggle
+    - Remember me checkbox (visual only, does not persist)
+    - Forgot Password link
+    - Loading spinner during login
+    - Error message on invalid credentials
+    - Link to Sign Up
+
+3.23 ui/screens/SignUpScreen.kt
+---------------------------------
+[VERIFIED] Account creation form.
+  Fields: Full Name, Email, Password, Confirm Password
+  Validation:
+    - Name required
+    - Email format check
+    - Password minimum 6 characters
+    - Confirm must match password
+  On success: calls preferences.signup() then navigates to profile_setup
+
+3.24 ui/screens/ForgotPasswordScreen.kt
+-----------------------------------------
+[VERIFIED] Email input with "Send Reset Link" button.
+  After clicking: shows a "Prototype Notice" card explaining that password
+  recovery is only available in the production version.
+  Has back button to return to login.
+
+3.25 ui/screens/ProfileSetupScreen.kt
+---------------------------------------
+[VERIFIED] Profile form shown after signup.
+  Fields: Full Name (pre-filled from signup), Age, Height (cm), Weight (kg),
+          Preferred Activity (dropdown)
+  Activity options: Running, Walking, Sprinting, Football, Basketball,
+                    Gym Training, Other
+  Validation: Name required, age 10-120, height 50-250cm, weight 20-300kg,
+              activity required
+  On save: calls preferences.saveProfile() then navigates to "main"
+
+  KNOWN ISSUE: Lines 64-69 use scope.launch { } during composition
+  (CoroutineCreationDuringComposition lint warning). Should use LaunchedEffect.
+
+3.26 ui/screens/DashboardScreen.kt
+------------------------------------
+[VERIFIED] Main overview screen.
+  Sections:
+    1. Header with greeting (Good morning/afternoon/evening), user name,
+       connection indicator, simulation badge
+    2. RiskGauge (large circular arc showing overall risk score)
+    3. "Updated X ago" timestamp
+    4. AlertCard (when risk is HIGH)
+    5. Risk Breakdown: Injury and Physio risk cards
+    6. Live Sensors: HR, Temp, Heel FSR, Forefoot FSR, Cadence, Acceleration,
+       Battery, Device
+    7. Monitoring status indicator (when active)
+    8. Disclaimer footer
+
+3.27 ui/screens/LiveScreen.kt
+-------------------------------
+[VERIFIED] Real-time monitoring screen with controls.
+  Sections:
+    1. Device status (BLE, Battery)
+    2. Controls: START / STOP / CALIBRATE buttons
+    3. Calibration progress bar (when calibrating)
+    4. Baseline display (after calibration)
+    5. Simulation mode chips (SMOOTH / ELEVATED / ALERT)
+    6. Live signals: HR, Temp, Heel, Forefoot, Cadence, Acceleration
+    7. Risk assessment: Injury, Physio, Overall risk cards
+    8. AlertCard (when high risk)
+    9. Real-time graphs: HR, Temperature, Heel vs Forefoot,
+       Cadence, Acceleration, Injury/Physio/Overall Risk Trends
+
+3.28 ui/screens/GaitScreen.kt
+-------------------------------
+[VERIFIED] Gait-specific analysis screen.
+  Sections:
+    1. Foot Pressure: Heel and Forefoot metric cards
+    2. Heel/Forefoot Balance: Progress bar, percentage split, ratio
+       with assessment:
+         ratio > 1.8 -> "Heavy rearfoot loading"
+         ratio < 0.6 -> "Heavy forefoot loading"
+         else -> "Balanced distribution"
+    3. Motion: Cadence and Acceleration
+    4. Gait Risk Estimation: Injury Risk card + Risk Components card
+       showing the four weights:
+         Pressure deviation:     35%
+         Gait-motion deviation:  25%
+         Impact deviation:       20%
+         Gait-cycle abnormality: 20%
+    5. Trends: Heel vs Forefoot, Cadence, Injury Risk Trend charts
+
+3.29 ui/screens/HistoryScreen.kt
+----------------------------------
+[VERIFIED] Two sub-screens:
+  A. Session List:
+     - Shows count of recorded sessions
+     - Cards for each session showing date, time range, final level,
+       duration, peak risk, average HR
+     - Clickable to open detail view
+     - Empty state if no sessions
+  B. Session Detail:
+     - Back button, "Session Detail" title
+     - Session Info: Started, Ended, Duration, Final Risk Level
+     - Risk Statistics: Peak Overall, Peak Injury, Peak Physio
+     - Sensor Statistics: Avg HR, Avg Temp, Avg Cadence
+
+3.30 ui/screens/PhysiologicalScreen.kt
+----------------------------------------
+[VERIFIED] The composable is named PhysiologicalSection (not PhysiologicalScreen).
+  Sections:
+    1. Heart Rate: Baseline HR and Current HR with delta calculation
+       (shows color-coded difference from baseline)
+    2. Temperature: Baseline Temp and Current Temp with delta
+    3. Physiological Risk card
+    4. "No baseline established" notice if baseline is null
+    5. Trends: HR, Temp, Physio Risk charts
+
+  NOTE: This screen is NOT directly accessible from the bottom navigation.
+  It is defined but appears unused in the current navigation graph.
+  [INFERRED: It may be intended for future integration]
+
+3.31 ui/screens/ProfileScreen.kt
+----------------------------------
+[VERIFIED] Edit profile form.
+  - Pre-fills all fields from saved UserPreferences on launch
+  - Fields: Name, Email, Age, Height, Weight, Activity (dropdown)
+  - Save Profile button with validation
+  - Shows "Profile saved" confirmation
+
+  NOTE: This screen is NOT shown in the bottom navigation tabs.
+  Tab 4 (Profile) shows SettingsScreen instead.
+  [INFERRED: ProfileScreen may be accessed from SettingsScreen in future]
+
+3.32 ui/screens/SettingsScreen.kt
+-----------------------------------
+[VERIFIED] Settings and device info screen (shown as Tab 4).
+  Sections:
+    1. DEVICE: Connection status, Device Name, Firmware, Battery, Sensors, Mode
+    2. CALIBRATION: Personal Baseline (HR, Temp, Heel, Forefoot),
+       Calibrate Baseline button with progress bar
+    3. APP: Simulation Mode, Data Source, Monitoring status, Sessions Recorded
+    4. ABOUT: Smart Gait v1.0.0, project name, architecture description:
+       "ESP32 + 2 FSR + MPU6050 + MAX30102 + Temp -> BLE -> Android"
+    5. Logout button (red, calls preferences.logout() then navigates to login)
+    6. Disclaimer footer
+
+3.33 ui/Screens.kt (OLD FILE, STILL EXISTS)
+---------------------------------------------
+[VERIFIED] The original UI file (before the UI transformation).
+  Contains: MainScreen, Header, Dashboard, SensorGrid, LiveScreen, GaitScreen,
+  HistoryScreen, SettingsScreen, and helper functions.
+  This file is NOT used by the current app because MainActivity now calls
+  AppNavigation instead of MainScreen. It remains in the project but is dead code.
+
+
+--- TEST FILES (4 files) ---
+
+3.34 CommandCodecTest.kt
+--------------------------
+[VERIFIED] 1 test:
+  serializesFirmwareCommand():
+    Asserts that CommandCodec.encode("PING") produces {"command":"PING"}
+
+3.35 CommandsAndStateTest.kt
+------------------------------
+[VERIFIED] 2 tests:
+  commandsHaveStableWireValues():
+    Asserts START_SESSION.wire == "START_SESSION"
+    Asserts CALIBRATE.wire == "CALIBRATE"
+  staleStateIsRepresentable():
+    Creates a RiskState with stale=true, asserts it's true
+
+3.36 PacketParserTest.kt
+--------------------------
+[VERIFIED] 2 tests:
+  parsesRisk():
+    Parses JSON {"type":"risk","overall":0.7,"alert":true}
+    Asserts overall == 0.7f and alert == true
+  rejectsWrongType():
+    Parses {"type":"live"} as risk, asserts result is null
+
+3.37 SimulationTest.kt
+------------------------
+[VERIFIED] 1 test:
+  emitsLabeledPacket():
+    Creates SimulationSource, collects first packet, asserts status == "SIMULATION"
+
+
+================================================================================
+PHASE 4 — DATA STORAGE INVENTORY
+================================================================================
+
+4.1 WHAT DATA IS STORED AND WHERE
+-----------------------------------
+
++-----------------------+------------------+-------------------------+-----------+
+| Data                  | Storage          | Location                | Lifetime  |
++-----------------------+------------------+-------------------------+-----------+
+| User login state      | DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| Onboarding completed  | DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| User name             | DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| User email            | DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| Password hash         | DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| User age/height/weight| DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| Activity type         | DataStore Prefs  | smart_gait_prefs.pb     | Persists  |
+| AppState              | RAM (StateFlow)  | MainViewModel._state    | In-memory |
+| Risk history (60 max) | RAM (StateFlow)  | AppState.riskHistory    | In-memory |
+| Sensor samples (60)   | RAM (StateFlow)  | AppState.samples        | In-memory |
+| Session history (20)  | RAM (StateFlow)  | AppState.history        | In-memory |
+| Baseline              | RAM (StateFlow)  | AppState.baseline       | In-memory |
++-----------------------+------------------+-------------------------+-----------+
+
+IMPORTANT: Session history, sensor samples, risk history, and baseline are
+NOT persisted to disk. They are lost when the app is closed or the process dies.
+Only authentication and profile data survive app restarts.
+
+4.2 NO DATABASE
+-----------------
+
+The project does NOT use:
+  - Room database
+  - SQLite
+  - Firebase
+  - SharedPreferences (uses DataStore instead)
+  - Any cloud/backend server
+
+4.3 DATASTORE FILE LOCATION
+-----------------------------
+
+The DataStore Preferences file is stored at:
+  /data/data/com.idp.smartgait/files/datastore/smart_gait_prefs.preferences_pb
+
+This is in the app's private internal storage. It is a Protocol Buffers file
+(not human-readable). It is automatically deleted when the app is uninstalled.
+
+
+================================================================================
+PHASE 5 — BLE / SENSOR COMMUNICATION PATH
+================================================================================
+
+5.1 OVERVIEW
+-------------
+
+The BLE communication is designed but NOT actively used in the current running
+app. The app runs in SIMULATION mode by default.
+
+However, the BLE code is complete and ready for real hardware. Here is the
+full intended BLE path:
+
+5.2 SCAN -> CONNECT -> GATT -> PARSE -> MODEL -> UI
+------------------------------------------------------
+
+STEP 1: SCAN
+  Class: BleScanner
+  - Uses BluetoothAdapter.getBluetoothLeScanner()
+  - Creates ScanFilter for device name "SMART_GAIT_001"
+  - Sets scan mode to LOW_LATENCY
+  - When device is found: calls onDevice callback with ScanResult
+
+STEP 2: CONNECT
+  Class: BleConnection (or BleManager.connect())
+  - Calls device.connectGatt(context, false, callback)
+  - autoConnect = false (connect immediately, don't wait)
+  - On STATE_CONNECTED callback: calls discoverServices()
+
+STEP 3: GATT SERVICE DISCOVERY
+  Class: GattDataSource (most complete implementation)
+  - onServicesDiscovered callback fires
+  - Gets the Smart Gait service using SERVICE UUID (7e3a0001-...)
+  - For each characteristic (LIVE_DATA, RISK, STATUS):
+    a. Gets the characteristic from the service
+    b. Calls setCharacteristicNotification(characteristic, true)
+    c. Gets the CCCD descriptor (UUID 00002902-0000-1000-8000-00805f9b34fb)
+    d. Writes ENABLE_NOTIFICATION_VALUE to the descriptor
+  - This tells the ESP32 to push data whenever it changes
+
+STEP 4: RECEIVE DATA
+  - onCharacteristicChanged callback fires when ESP32 sends data
+  - Emits Pair<UUID, ByteArray> via SharedFlow
+
+STEP 5: PARSE
+  Class: PacketParser
+  - Determines packet type by checking UUID:
+    - RISK UUID -> PacketParser.risk(bytes) -> RiskPacket
+    - LIVE_DATA UUID -> PacketParser.live(bytes) -> LiveDataPacket
+    - STATUS UUID -> PacketParser.status(bytes) -> StatusPacket
+  - JSON format: {"type":"risk","injury":45.2,...}
+
+STEP 6: MODEL
+  Class: Repository
+  - Emits parsed packets to SharedFlow channels
+  - ViewModel collects and updates AppState
+
+STEP 7: UI
+  - Screens call vm.state.collectAsState()
+  - Compose automatically recomposes when state changes
+
+5.3 SEND COMMANDS (APP -> ESP32)
+----------------------------------
+
+  1. UI calls vm.command(BleCommand.PING) (or START_SESSION, etc.)
+  2. MainViewModel routes to repository.sendCommand()
+  3. Repository calls GattDataSource.writeCommand()
+  4. GattDataSource uses CommandCodec.encode(command.wire) to get JSON string
+     Example: {"command":"PING"}
+  5. Writes JSON bytes to the COMMAND characteristic (7e3a0005-...)
+  6. ESP32 receives and processes the command
+
+5.4 JSON PACKET EXAMPLES
+--------------------------
+
+  Risk packet from ESP32:
+    {"type":"risk","ts":1234567890,"injury":45.2,"injury_level":"MODERATE",
+     "physio":30.0,"physio_level":"LOW","overall":37.6,"overall_level":"LOW",
+     "status":"NORMAL","alert":false,"alert_type":"NONE","priority":"LOW",
+     "message":"Normal gait pattern"}
+
+  Live data packet from ESP32:
+    {"type":"live","ts":1234567890,"hr":75.2,"temp":36.8,
+     "heel":420.0,"forefoot":310.0,"acc":1.5,"cad":160.0,"mode":"NORMAL"}
+
+  Status packet from ESP32:
+    {"type":"status","device":"SMART_GAIT_001","firmware":"0.8.0",
+     "battery":95,"connected":true,"uptime":3600,"sensor_ready":true,
+     "mode":"NORMAL"}
+
+  Command to ESP32:
+    {"command":"START_SESSION"}
+
+
+================================================================================
+PHASE 6 — RISK CALCULATION LOGIC (TRACED LINE BY LINE)
+================================================================================
+
+6.1 IMPORTANT DISCLAIMER
+--------------------------
+
+In this app, the risk calculation does NOT happen on the Android phone.
+The risk scores are computed by the ESP32 firmware and sent as numbers
+in the RiskPacket. The Android app DISPLAYS the risk values; it does not
+calculate them.
+
+However, the SimulationSource generates simulated scores, and the app
+determines the risk LEVEL from the score.
+
+6.2 RISK LEVEL DETERMINATION (from SimulationSource.kt, line 16)
+-----------------------------------------------------------------
+
+[VERIFIED] Source: SimulationSource.kt line 16
+
+  val level = when {
+      score >= 70f -> "HIGH"
+      score >= 40f -> "MODERATE"
+      else -> "LOW"
+  }
+
+This is also used in Color.kt:
+
+  fun riskColor(value: Float): Color = when {
+      value >= 70f -> RiskHigh      (red)
+      value >= 40f -> RiskModerate  (amber)
+      else -> RiskLow              (green)
+  }
+
+RISK THRESHOLDS:
+  LOW:      0 to 39     (green)
+  MODERATE: 40 to 69    (amber)
+  HIGH:     70 to 100   (red)
+
+
+6.3 SIMULATION SCORE GENERATION (line by line walkthrough)
+-----------------------------------------------------------
+
+[VERIFIED] Source: SimulationSource.kt lines 8-27
+
+  fun packets(): Flow<RiskPacket> = flow {
+    var i = 0                             // Counter variable
+    while (true) {                        // Infinite loop
+      val score = when (scenario) {
+        SMOOTH ->                         // Low risk scenario
+          25f + (i++ % 10) * 2f           // 25, 27, 29, 31, ..., 43, 25, 27, ...
+        ELEVATED ->                       // Moderate risk scenario
+          62f + (i++ % 5) * 3f            // 62, 65, 68, 71, 74, 62, 65, ...
+        ALERT ->                          // High risk scenario
+          90f                             // Fixed at 90
+      }
+
+WORKED EXAMPLE (SMOOTH scenario):
+
+  When i=0:  score = 25 + (0 % 10) * 2 = 25 + 0  = 25.0  -> level = "LOW"
+  When i=1:  score = 25 + (1 % 10) * 2 = 25 + 2  = 27.0  -> level = "LOW"
+  When i=2:  score = 25 + (2 % 10) * 2 = 25 + 4  = 29.0  -> level = "LOW"
+  ...
+  When i=7:  score = 25 + (7 % 10) * 2 = 25 + 14 = 39.0  -> level = "LOW"
+  When i=8:  score = 25 + (8 % 10) * 2 = 25 + 16 = 41.0  -> level = "MODERATE"
+  When i=9:  score = 25 + (9 % 10) * 2 = 25 + 18 = 43.0  -> level = "MODERATE"
+  When i=10: score = 25 + (0 % 10) * 2 = 25 + 0  = 25.0  -> level = "LOW" (resets)
+
+  So SMOOTH cycles between 25 and 43, crossing into MODERATE briefly.
+
+WORKED EXAMPLE (ELEVATED scenario):
+
+  i=0: score = 62 + (0 % 5) * 3 = 62.0  -> "MODERATE"
+  i=1: score = 62 + (1 % 5) * 3 = 65.0  -> "MODERATE"
+  i=2: score = 62 + (2 % 5) * 3 = 68.0  -> "MODERATE"
+  i=3: score = 62 + (3 % 5) * 3 = 71.0  -> "HIGH"
+  i=4: score = 62 + (4 % 5) * 3 = 74.0  -> "HIGH"
+  i=5: score = 62 + (0 % 5) * 3 = 62.0  -> "MODERATE" (resets)
+
+  So ELEVATED cycles between 62 and 74, moving between MODERATE and HIGH.
+
+
+6.4 DERIVED VALUES IN REPOSITORY (line by line)
+--------------------------------------------------
+
+[VERIFIED] Source: BleRepository.kt lines 19-23
+
+  For each RiskPacket from simulation, Repository derives:
+
+  val imbalance = (it.injury / 100f).coerceIn(0f, 1f)
+
+  Example: if injury = 25.0, then imbalance = 25/100 = 0.25
+
+  LiveDataPacket is created with:
+    hr       = 72f + it.physio * 0.4f
+    temp     = 36.6f + it.physio * 0.01f
+    heel     = 420f * (1f - imbalance * 0.25f)
+    forefoot = 310f * (1f + imbalance * 0.25f)
+    acc      = 1.21f   (constant)
+    cad      = 168f    (constant)
+
+  WORKED EXAMPLE (SMOOTH, i=0, score=25):
+    injury = 25, physio = min(25+5, 100) = 30, overall = min(25+2, 100) = 27
+    imbalance = 25/100 = 0.25
+
+    hr       = 72 + 30 * 0.4 = 72 + 12 = 84.0 BPM
+    temp     = 36.6 + 30 * 0.01 = 36.6 + 0.3 = 36.9 degrees C
+    heel     = 420 * (1 - 0.25 * 0.25) = 420 * 0.9375 = 393.75
+    forefoot = 310 * (1 + 0.25 * 0.25) = 310 * 1.0625 = 329.375
+    acc      = 1.21 m/s squared
+    cad      = 168 steps/min
+
+
+6.5 RISK COMPONENT WEIGHTS (shown in GaitScreen.kt)
+-----------------------------------------------------
+
+[VERIFIED] Source: GaitScreen.kt, RiskComponent calls
+
+  These weights are displayed as information in the UI:
+    Pressure deviation:       35%
+    Gait-motion deviation:    25%
+    Impact deviation:         20%
+    Gait-cycle abnormality:   20%
+    TOTAL:                   100%
+
+  IMPORTANT: These weights are applied by the ESP32 firmware, NOT by the
+  Android app. The app simply displays them as static text for informational
+  purposes.
+
+
+================================================================================
+PHASE 7 — EVERY SCREEN AND EVERY BUTTON
+================================================================================
+
+7.1 SPLASH SCREEN
+-------------------
+  Elements:
+    - Full-screen navy background
+    - Animated AppLogo (fade + scale animation, 1 second)
+    - Auto-navigates after 2.2 seconds
+  Buttons: NONE (automatic navigation)
+
+7.2 ONBOARDING SCREEN
+-----------------------
+  Elements:
+    - 3 horizontal pages with swipe gesture
+    - Each page: icon circle, title, description
+    - Page dots at bottom
+  Buttons:
+    - "Skip" (top right) -> completes onboarding, goes to login
+    - "Back" (bottom left, page 2+) -> previous page
+    - "Next" (bottom right, pages 1-2) -> next page
+    - "Get Started" (page 3) -> completes onboarding, goes to login
+
+7.3 LOGIN SCREEN
+-----------------
+  Elements:
+    - AppLogo
+    - "Welcome Back" heading
+    - Email text field (with email icon, validation)
+    - Password text field (with lock icon, show/hide toggle)
+    - "Remember me" checkbox
+    - Error messages (email, password, login failure)
+    - Loading spinner
+  Buttons:
+    - "Forgot Password?" link -> forgot_password screen
+    - "Login" button -> validates, attempts login
+    - "Sign Up" link -> signup screen
+
+7.4 SIGN UP SCREEN
+--------------------
+  Elements:
+    - AppLogo
+    - "Create Account" heading
+    - Full Name, Email, Password, Confirm Password fields
+    - Show/hide password toggle
+    - Validation errors
+  Buttons:
+    - "Create Account" -> validates, creates account, goes to profile_setup
+    - "Login" link -> back to login
+
+7.5 FORGOT PASSWORD SCREEN
+----------------------------
+  Elements:
+    - Back arrow
+    - AppLogo
+    - "Reset Password" heading
+    - Email field (before submit)
+    - "Prototype Notice" card (after submit)
+  Buttons:
+    - Back arrow -> returns to login
+    - "Send Reset Link" -> shows prototype notice
+    - "Back to Login" -> returns to login
+
+7.6 PROFILE SETUP SCREEN
+--------------------------
+  Elements:
+    - "Set Up Your Profile" heading
+    - Name (pre-filled from signup), Age, Height (cm), Weight (kg) fields
+    - Activity dropdown (7 options)
+    - Validation error message
+  Buttons:
+    - "Save & Continue" -> validates, saves profile, goes to main
+
+7.7 DASHBOARD SCREEN (Tab 0)
+------------------------------
+  Elements:
+    - Greeting + user name
+    - Connection indicator + simulation badge
+    - RiskGauge (large circular arc)
+    - "Updated X ago" text
+    - AlertCard (when risk is HIGH)
+    - Injury and Physio risk cards
+    - 8 MetricCards (HR, Temp, Heel, Forefoot, Cadence, Acceleration,
+      Battery, Device)
+    - Monitoring status indicator
+    - Disclaimer footer
+  Buttons: NONE (display only; monitoring controlled from Live tab)
+
+7.8 LIVE MONITORING SCREEN (Tab 1)
+------------------------------------
+  Elements:
+    - "Live Monitoring" heading + simulation badge
+    - BLE Status and Battery cards
+    - Connection indicator
+    - Calibration progress bar (during calibration)
+    - Baseline display (after calibration)
+    - 6 sensor MetricCards
+    - Injury, Physio, Overall risk cards
+    - AlertCard (when risk HIGH)
+    - 8 real-time charts
+    - Disclaimer footer
+  Buttons:
+    - "START" -> starts monitoring session
+    - "STOP" -> stops monitoring, creates session summary
+    - "CALIBRATE" -> starts calibration (5 steps, 400ms each)
+    - SMOOTH / ELEVATED / ALERT chips -> changes simulation scenario
+
+7.9 GAIT ANALYSIS SCREEN (Tab 2)
+----------------------------------
+  Elements:
+    - "Gait Analysis" heading
+    - Heel and Forefoot MetricCards
+    - Heel/Forefoot Balance card (progress bar, ratio, assessment)
+    - Cadence and Acceleration MetricCards
+    - Injury Risk card
+    - Risk Components card (35%, 25%, 20%, 20% weights)
+    - 3 trend charts
+    - Disclaimer footer
+  Buttons: NONE (display only)
+
+7.10 HISTORY SCREEN (Tab 3)
+-----------------------------
+  Session List View:
+    - "Session History" heading with count
+    - List of SessionCards (clickable)
+    - Empty state if no sessions
+    - Disclaimer footer
+  Session Detail View:
+    - Back button
+    - Session info, risk stats, sensor stats cards
+    - Disclaimer footer
+  Buttons:
+    - Each session card (tap to view detail)
+    - Back arrow (return to list)
+
+7.11 SETTINGS SCREEN (Tab 4, labeled "Profile")
+-------------------------------------------------
+  Elements:
+    - "Settings" heading
+    - Device card (Connection, Device Name, Firmware, Battery, Sensors, Mode)
+    - Calibration card (Baseline values + progress)
+    - App card (Simulation Mode, Data Source, Monitoring, Sessions count)
+    - About card (Smart Gait v1.0.0, project name, architecture)
+    - Disclaimer footer
+  Buttons:
+    - "Calibrate Baseline" -> starts calibration
+    - "Logout" (red button) -> logs out, returns to login
+
+
+================================================================================
+PHASE 8 — UI AND ANDROID FUNDAMENTALS AS THEY APPEAR IN THE PROJECT
+================================================================================
+
+8.1 JETPACK COMPOSE BASICS
+----------------------------
+
+Jetpack Compose is Android's modern UI toolkit. Instead of XML layouts,
+you write UI as Kotlin functions annotated with @Composable.
+
+In this project:
+  - Every screen is a @Composable function (not an Activity or Fragment)
+  - UI automatically updates when state changes (reactive)
+  - No XML layout files (except styles.xml for the base Android theme)
+
+Example from DashboardScreen:
+  @Composable
+  fun DashboardScreen(state: AppState, userProfile: UserProfile, modifier: Modifier) {
+      LazyColumn(...) {
+          item { RiskGauge(score = risk?.overall ?: 0f, ...) }
+      }
+  }
+
+When state.risk changes, Compose automatically recomposes (redraws) the
+affected parts of the UI.
+
+
+8.2 STATE MANAGEMENT WITH STATEFLOW
+--------------------------------------
+
+StateFlow is a Kotlin coroutines concept. It holds a single value and
+notifies all collectors when the value changes.
+
+  In MainViewModel:
+    private val _state = MutableStateFlow(AppState(simulation=true))
+    val state: StateFlow<AppState> = _state.asStateFlow()
+
+  In UI:
+    val state by vm.state.collectAsState()
+
+  collectAsState() converts the StateFlow into Compose State,
+  which triggers recomposition when the value changes.
+
+
+8.3 NAVIGATION IN COMPOSE
+---------------------------
+
+The app uses Jetpack Navigation Compose:
+  - NavHost defines all routes (composable("route") { ... })
+  - navController.navigate("route") navigates to a screen
+  - popUpTo("route") { inclusive = true } removes screens from back stack
+  - rememberNavController() creates the NavController
+
+The bottom navigation uses manual selectedTab state (not NavHost routes).
+Each tab shows a different Composable within the same "main" route.
+
+
+8.4 LAZYCOLUMN
+----------------
+
+LazyColumn is Compose's equivalent of RecyclerView. It efficiently
+renders only the visible items on screen.
+
+Every main screen uses LazyColumn:
+  LazyColumn(contentPadding = PaddingValues(...), verticalArrangement = ...) {
+      item { Header() }            // Single item
+      items(list) { item -> ... }  // List of items
+  }
+
+
+8.5 MATERIAL 3 COMPONENTS USED
+---------------------------------
+
+  - Scaffold: App structure with bottom bar and content
+  - NavigationBar + NavigationBarItem: Bottom navigation
+  - Card: Container with elevation and rounded corners
+  - Text: Text display with Material typography
+  - Button, OutlinedButton: Primary and secondary buttons
+  - FilterChip: Selection chips (for simulation scenarios)
+  - OutlinedTextField: Text input fields
+  - CircularProgressIndicator: Loading spinner
+  - LinearProgressIndicator: Progress bar (calibration)
+  - Checkbox: Remember me toggle
+  - DropdownMenuItem: Activity type selection
+  - ExposedDropdownMenuBox: Dropdown wrapper
+  - SnackbarHost: Message display
+  - HorizontalPager: Onboarding swipe pages
+  - IconButton: Icon-only buttons (back arrow)
+
+
+8.6 CANVAS DRAWING
+--------------------
+
+The app uses Canvas for custom drawing:
+  - AppLogo: Concentric circles
+  - RiskGauge: Circular arc gauge (drawArc)
+  - LineChart: Path-based line charts (drawPath, drawCircle)
+  - OnboardingScreen: Icon background circles
+
+Example from RiskGauge:
+  Canvas(Modifier.size(160.dp)) {
+      drawArc(color, startAngle = 135f, sweepAngle = 270f, ...)  // Background
+      drawArc(color, startAngle = 135f, sweepAngle = sweep, ...)  // Foreground
+  }
+
+
+8.7 ANIMATIONS
+----------------
+
+  - SplashScreen: fadeIn(tween(1000)) + scaleIn(initialScale = 0.85f)
+  - RiskGauge: animateFloatAsState(targetValue = score, tween(800))
+
+These use Compose Animation APIs for smooth transitions.
+
+
+8.8 MODIFIER CHAIN
+--------------------
+
+Modifiers in Compose define layout, appearance, and behavior:
+  Modifier
+      .fillMaxSize()           // Take all available space
+      .background(NavyDark)    // Set background color
+      .verticalScroll(...)     // Enable scrolling
+      .padding(24.dp)          // Add padding
+
+Order matters: .background() then .padding() means padding is inside the
+background. If reversed, the background wouldn't cover the padding area.
+
+
+================================================================================
+PHASE 9 — BUILD, DEPENDENCIES, AND EXECUTION
+================================================================================
+
+9.1 BUILD SYSTEM
+-----------------
+
+Tool: Gradle (version 8.7)
+Build files: Kotlin DSL (.gradle.kts)
+
+File hierarchy:
+  build.gradle.kts (root)    -> Declares plugins with versions
+  settings.gradle.kts        -> Includes :app module
+  app/build.gradle.kts       -> App configuration and dependencies
+  gradle.properties          -> JVM args and AndroidX flag
+
+9.2 HOW TO BUILD
+-----------------
+
+  Command: gradle :app:assembleDebug
+  Or using wrapper: gradlew.bat :app:assembleDebug (Windows)
+
+  Requirements:
+    - JDK 17 (set via kotlin { jvmToolchain(17) })
+    - Android SDK with compileSdk 35
+    - Gradle 8.7 (from local file C:/Gradle/gradle-8.7-bin.zip)
+
+9.3 HOW TO RUN TESTS
+----------------------
+
+  Command: gradle :app:test
+  Or: gradlew.bat :app:test
+
+  This runs 6 JUnit tests:
+    1. CommandCodecTest.serializesFirmwareCommand
+    2. CommandsAndStateTest.commandsHaveStableWireValues
+    3. CommandsAndStateTest.staleStateIsRepresentable
+    4. PacketParserTest.parsesRisk
+    5. PacketParserTest.rejectsWrongType
+    6. SimulationTest.emitsLabeledPacket
+
+9.4 COMPOSE BOM (BILL OF MATERIALS)
+-------------------------------------
+
+  implementation(platform("androidx.compose:compose-bom:2024.09.00"))
+
+  The BOM ensures all Compose libraries use compatible versions.
+  You don't need to specify versions for individual Compose dependencies:
+    implementation("androidx.compose.ui:ui")          // No version needed
+    implementation("androidx.compose.material3:material3")  // No version needed
+
+9.5 KOTLIN SERIALIZATION
+--------------------------
+
+  Plugin: org.jetbrains.kotlin.plugin.serialization
+  Library: kotlinx-serialization-json:1.6.3
+
+  This generates JSON serializers at compile time for classes annotated with
+  @Serializable (RiskPacket, LiveDataPacket, StatusPacket, CommandPacket).
+
+  Unlike Gson or Moshi, kotlinx.serialization works without reflection,
+  which is more efficient on Android.
+
+9.6 WHAT HAPPENS AT APP STARTUP
+----------------------------------
+
+  1. Android system launches MainActivity (declared as LAUNCHER in manifest)
+  2. onCreate() runs:
+     a. Requests Bluetooth permissions
+     b. setContent { SmartGaitTheme { AppNavigation(mainViewModel) } }
+  3. SmartGaitTheme applies dark color scheme, sets status bar colors
+  4. AppNavigation creates NavHost with startDestination = "splash"
+  5. SplashScreen shows, checks auth, auto-navigates after 2.2 seconds
+  6. MainViewModel is created, which:
+     a. Creates Repository with SimulationSource
+     b. Starts simulation (data flows immediately)
+     c. Begins collecting data into AppState
+  7. By the time user reaches Dashboard, simulated data is already flowing
+
+
+================================================================================
+PHASE 10 — TROUBLESHOOTING AND DEBUGGING
+================================================================================
+
+10.1 COMMON BUILD ISSUES
+--------------------------
+
+Issue: "SDK location not found"
+Fix: Ensure local.properties has sdk.dir pointing to your Android SDK.
+
+Issue: "Gradle wrapper not found"
+Fix: Run "gradle wrapper" to generate gradlew and gradlew.bat.
+
+Issue: "compileSdk 35 not found"
+Fix: Open SDK Manager, install Android API 35 (Android 15).
+
+Issue: "JDK 17 required"
+Fix: Install JDK 17 and set JAVA_HOME environment variable.
+
+Issue: "Compose compiler version mismatch"
+Fix: Kotlin 1.9.24 requires Compose compiler 1.5.14 (already configured).
+
+10.2 RUNTIME ISSUES
+---------------------
+
+Issue: App shows "Waiting for data"
+Cause: SimulationSource has not started yet or ViewModel not created.
+Fix: This should resolve within 1-2 seconds after app opens. Check that
+     MainViewModel.init block runs repository.start().
+
+Issue: "No sessions recorded"
+Cause: You need to click START, wait, then click STOP to record a session.
+Fix: Go to Live tab, press START, wait a few seconds, press STOP.
+
+Issue: Bluetooth permissions not granted
+Cause: User denied the permission dialog.
+Fix: Go to Android Settings -> Apps -> Smart Gait -> Permissions -> allow.
+
+Issue: "CoroutineCreationDuringComposition" lint warning
+Location: ProfileSetupScreen.kt line 66
+Cause: scope.launch { } is called during composition instead of in
+       LaunchedEffect or a button click handler.
+Status: Known issue, does not crash the app but is not best practice.
+
+10.3 DEBUGGING TIPS
+---------------------
+
+  - Use Logcat in Android Studio to see logs
+  - Filter by "com.idp.smartgait" package
+  - Use "Layout Inspector" in Android Studio to inspect Compose UI
+  - AppState is the single source of truth - check _state value in debugger
+  - Set breakpoints in MainViewModel.init to trace data flow
+
+
+================================================================================
+PHASE 11 — 150+ VIVA QUESTIONS AND ANSWERS
+================================================================================
+
+==== CATEGORY A: PROJECT OVERVIEW (10 questions) ====
+
+Q1: What is the project name and what does it do?
+A: Smart Gait Monitoring and Early Injury-Risk Detection System. It is an
+   Android app that receives sensor data from an ESP32 wearable device via
+   BLE, displays real-time gait metrics (pressure, cadence, acceleration),
+   physiological metrics (heart rate, temperature), and provides early risk
+   estimation for potential injuries.
+
+Q2: What hardware does the system use?
+A: ESP32 microcontroller with 2 FSR sensors (heel + forefoot), MPU6050
+   accelerometer/gyroscope, MAX30102 pulse oximeter (heart rate), MAX30205
+   temperature sensor, and a vibration motor for haptic alerts.
+
+Q3: What platform and language is the app built on?
+A: Android platform using Kotlin language and Jetpack Compose UI framework.
+
+Q4: What is the app's package name and application ID?
+A: com.idp.smartgait
+
+Q5: What Android versions does the app support?
+A: minSdk 26 (Android 8.0 Oreo) to targetSdk/compileSdk 35 (Android 15).
+
+Q6: Is this a medical diagnostic tool?
+A: No. It provides "risk estimation" and "early warning" for abnormal
+   patterns. Every screen includes a disclaimer: "Prototype risk estimation -
+   not a medical diagnosis."
+
+Q7: What mode does the app currently run in?
+A: Simulation mode. The app generates fake sensor data every 1 second using
+   SimulationSource. Real BLE hardware code is written but not actively used.
+
+Q8: How many screens does the app have?
+A: 13 new screens (splash, onboarding, login, signup, forgot password,
+   profile setup, dashboard, live, gait, history, physiological, profile,
+   settings) plus 1 old screen file (Screens.kt, unused dead code).
+
+Q9: What is the risk scoring range?
+A: 0 to 100. LOW = 0-39 (green), MODERATE = 40-69 (amber), HIGH = 70-100 (red).
+
+Q10: What communication protocol is used between ESP32 and Android?
+A: Bluetooth Low Energy (BLE) with JSON-formatted data over GATT characteristics.
+
+
+==== CATEGORY B: ARCHITECTURE (10 questions) ====
+
+Q11: What architecture pattern does the app use?
+A: MVVM (Model-View-ViewModel). The Model layer includes data classes and
+   repository. The View layer is Compose UI. The ViewModel holds AppState.
+
+Q12: What is the central state object?
+A: AppState (in data/Models.kt). It contains connection state, risk data,
+   live sensor data, status, simulation flag, monitoring state, session
+   history, samples, baseline, calibration progress, and messages.
+
+Q13: How does data flow from simulation to UI?
+A: SimulationSource -> Repository (via Flow<RiskPacket>) -> MainViewModel
+   (collects and updates StateFlow<AppState>) -> UI screens (collectAsState()).
+
+Q14: Does the app use dependency injection?
+A: No DI framework (no Hilt, Dagger, or Koin). Dependencies are created via
+   constructor parameters with default values (manual DI).
+
+Q15: How does the ViewModel communicate with the Repository?
+A: Through the RiskRepository interface using Kotlin Flow. The ViewModel
+   collects Flow emissions and updates its StateFlow<AppState>.
+
+Q16: What is the RiskRepository interface?
+A: It defines: risks, lives, statuses (Flow properties), connection (Flow),
+   start(), stop(), sendCommand(), and selectScenario() functions.
+
+Q17: How is the ViewModel created?
+A: In MainActivity via ViewModelProvider(this)[MainViewModel::class.java].
+   ViewModelProvider uses the default factory which calls the no-arg constructor.
+
+Q18: Why does MainViewModel have a default parameter for Repository?
+A: So it can be constructed without arguments by ViewModelProvider (which calls
+   the no-arg constructor), while still allowing test code to inject a mock.
+
+Q19: How many StateFlows does MainViewModel maintain?
+A: Three: _state (AppState), _selectedScenario (SimulationScenario),
+   _selectedSession (SessionSummary?).
+
+Q20: What happens when MainViewModel is cleared?
+A: onCleared() calls repository.stop() to cancel the simulation coroutine,
+   then calls super.onCleared().
+
+
+==== CATEGORY C: KOTLIN AND COROUTINES (10 questions) ====
+
+Q21: What are coroutines?
+A: Lightweight threads in Kotlin for asynchronous programming. They allow
+   writing non-blocking code that looks sequential. Used throughout this
+   app for data flow and background operations.
+
+Q22: What is a Flow in Kotlin?
+A: A cold asynchronous stream that emits values over time. Cold means it
+   doesn't start producing until someone collects it. SimulationSource.packets()
+   returns a Flow<RiskPacket>.
+
+Q23: What is a SharedFlow?
+A: A hot Flow that can have multiple collectors. The Repository uses
+   MutableSharedFlow for risks, lives, and statuses so that multiple
+   ViewModels or collectors can receive the same data.
+
+Q24: What is a StateFlow?
+A: A hot Flow that always holds a current value and emits updates. It's like
+   SharedFlow with a replay of 1. AppState is held in a StateFlow.
+
+Q25: What is viewModelScope?
+A: A CoroutineScope tied to the ViewModel's lifecycle. All coroutines launched
+   in viewModelScope are automatically cancelled when the ViewModel is cleared.
+
+Q26: What does collectAsState() do?
+A: Converts a Kotlin Flow or StateFlow into a Compose State object. When the
+   Flow emits a new value, Compose recomposes the affected UI.
+
+Q27: What is the delay() function?
+A: A suspend function that pauses a coroutine for a specified time without
+   blocking the thread. Used in SimulationSource (1000ms) and calibration (400ms).
+
+Q28: What does .coerceIn(min, max) do?
+A: Constrains a value to be within [min, max]. Example: (injury/100f).coerceIn(0f,1f)
+   ensures the result is between 0 and 1.
+
+Q29: What is runCatching { }.getOrNull()?
+A: Runs a block of code and catches any exception. If successful, returns the
+   result. If an exception occurs, returns null. Used in PacketParser to safely
+   parse JSON without crashing.
+
+Q30: What is the difference between launch and collect?
+A: launch starts a new coroutine. collect is a terminal Flow operator that
+   receives each emitted value. You typically launch { flow.collect { ... } }.
+
+
+==== CATEGORY D: JETPACK COMPOSE (10 questions) ====
+
+Q31: What is Jetpack Compose?
+A: Android's modern declarative UI toolkit. You describe what the UI should look
+   like using Kotlin functions, and Compose handles the rendering and updates.
+
+Q32: What is a @Composable function?
+A: A function annotated with @Composable that can emit UI elements. It cannot
+   be called from regular functions, only from other Composable functions.
+
+Q33: What is recomposition?
+A: When a Composable's input (state) changes, Compose re-executes that function
+   to update the UI. Only affected parts are re-rendered, not the entire screen.
+
+Q34: What does remember { } do?
+A: Remembers a value across recompositions. Without remember, the value would be
+   reset every time the Composable re-executes.
+
+Q35: What does mutableStateOf() do?
+A: Creates a Compose State object that triggers recomposition when its value
+   changes. Used with remember for local UI state (e.g., text fields).
+
+Q36: What is a LazyColumn?
+A: A vertically scrolling list that only renders visible items on screen.
+   Similar to RecyclerView but declarative. Every main screen uses LazyColumn.
+
+Q37: What is Modifier in Compose?
+A: An object that modifies the layout, appearance, or behavior of a Composable.
+   Modifiers are chained: Modifier.fillMaxSize().padding(16.dp).background(color).
+
+Q38: What is LaunchedEffect?
+A: A side-effect handler in Compose. Code inside LaunchedEffect runs once when
+   the key changes (or on first composition). Used for one-time operations.
+
+Q39: What is a Scaffold?
+A: A Material 3 layout structure that provides slots for top bar, bottom bar,
+   FAB, snackbar, and content. The app uses Scaffold with a bottom NavigationBar.
+
+Q40: How does bottom navigation work in this app?
+A: A selectedTab integer state tracks the current tab. NavigationBar with
+   NavigationBarItem for each tab. When clicked, selectedTab changes, and a
+   when(selectedTab) block shows the corresponding screen Composable.
+
+
+==== CATEGORY E: BLE (BLUETOOTH LOW ENERGY) (10 questions) ====
+
+Q41: What is BLE?
+A: Bluetooth Low Energy, a power-efficient wireless protocol for short-range
+   communication. Used by IoT devices to send small amounts of data to phones.
+
+Q42: What is GATT?
+A: Generic Attribute Profile - the standard BLE communication protocol.
+   Data is organized into Services (groups) containing Characteristics (data points).
+
+Q43: What UUIDs does this project use?
+A: Custom UUIDs:
+   Service:   7e3a0001-5e8d-4f4a-9a9b-1a2b3c4d5e01
+   Live Data: 7e3a0002-5e8d-4f4a-9a9b-1a2b3c4d5e01
+   Risk:      7e3a0003-5e8d-4f4a-9a9b-1a2b3c4d5e01
+   Status:    7e3a0004-5e8d-4f4a-9a9b-1a2b3c4d5e01
+   Command:   7e3a0005-5e8d-4f4a-9a9b-1a2b3c4d5e01
+
+Q44: What is the BLE device name?
+A: "SMART_GAIT_001" (defined in BleUuids.kt).
+
+Q45: How does the app scan for BLE devices?
+A: BleScanner uses BluetoothAdapter.getBluetoothLeScanner().startScan() with
+   a ScanFilter that filters by device name "SMART_GAIT_001".
+
+Q46: What is a CCCD descriptor?
+A: Client Characteristic Configuration Descriptor (UUID 00002902-0000-1000-8000-
+   00805f9b34fb). Writing ENABLE_NOTIFICATION_VALUE to it tells the BLE device
+   to push data updates to the phone automatically.
+
+Q47: How does the app receive data from ESP32?
+A: After subscribing to notifications, the ESP32 sends data through BLE
+   characteristic changes. The onCharacteristicChanged callback is triggered,
+   and the byte array is emitted via SharedFlow.
+
+Q48: How are commands sent to the ESP32?
+A: CommandCodec.encode() serializes the command to JSON (e.g., {"command":"PING"}),
+   which is converted to bytes and written to the COMMAND characteristic.
+
+Q49: Why does the app need BLUETOOTH_CONNECT permission?
+A: To connect to a BLE device and communicate with it. Android 12+ requires
+   this specific permission instead of the older BLUETOOTH permission.
+
+Q50: Why is BLE not used in the running app?
+A: The Repository class uses SimulationSource by default. To use real BLE,
+   you would need to replace SimulationSource with GattDataSource integration.
+
+
+==== CATEGORY F: DATA MODELS (8 questions) ====
+
+Q51: What are the three packet types?
+A: RiskPacket (risk scores), LiveDataPacket (sensor readings), StatusPacket
+   (device status). All are @Serializable data classes.
+
+Q52: What is AppState?
+A: The central state object containing all app data: connection, risk, live
+   sensor data, status, simulation flag, monitoring state, history, samples,
+   riskHistory, baseline, calibration, and messages.
+
+Q53: What is SessionSummary?
+A: A record of a completed monitoring session containing: start/end times,
+   average HR/temp/cadence, peak risk scores, and final risk level.
+
+Q54: What is Baseline?
+A: The user's personal baseline readings after calibration: heart rate,
+   temperature, heel pressure, and forefoot pressure.
+
+Q55: What is RiskState?
+A: A wrapper around RiskPacket that adds receivedAt timestamp and stale flag.
+
+Q56: How many sessions can be stored?
+A: Maximum 20 sessions in AppState.history (takeLast(20) in MainViewModel).
+
+Q57: How many samples and risk history entries are kept?
+A: 60 each (takeLast(60) in MainViewModel for both samples and riskHistory).
+
+Q58: What is UserProfile?
+A: Data class with name, email, age, height, weight, and activityType.
+   Persisted to DataStore Preferences.
+
+
+==== CATEGORY G: SIMULATION (8 questions) ====
+
+Q59: What are the three simulation scenarios?
+A: SMOOTH (low risk, 25-43), ELEVATED (moderate-high, 62-74), ALERT (high, 90).
+
+Q60: How often does simulation emit data?
+A: Every 1000 milliseconds (1 second), configurable via intervalMs parameter.
+
+Q61: How is the SMOOTH score calculated?
+A: score = 25 + (counter % 10) * 2, cycling from 25 to 43.
+
+Q62: How does the simulation generate sensor readings?
+A: Repository derives them from risk scores. Heart rate = 72 + physio*0.4,
+   Temperature = 36.6 + physio*0.01, Heel/Forefoot based on imbalance ratio.
+
+Q63: Is simulation data labeled?
+A: Yes. The status field is "SIMULATION" and mode is "SIMULATION" in all
+   simulated packets.
+
+Q64: How do you change simulation scenario?
+A: Call vm.scenario(SimulationScenario.ELEVATED). This calls
+   repository.selectScenario() which sets simulation.scenario property.
+   The UI has FilterChips on the Live screen for this.
+
+Q65: Does the counter reset when scenario changes?
+A: No. The counter (i) continues incrementing. Only the score formula changes.
+
+Q66: What does the simulation return for battery?
+A: Always 97% (hardcoded in Repository.start() StatusPacket).
+
+
+==== CATEGORY H: NAVIGATION (8 questions) ====
+
+Q67: What navigation library is used?
+A: androidx.navigation:navigation-compose:2.7.7
+
+Q68: What is the start destination?
+A: "splash" (SplashScreen)
+
+Q69: How does the splash screen decide where to navigate?
+A: checks preferences.isLoggedInNow() and preferences.isOnboardingDone()
+   to route to "main", "login", or "onboarding".
+
+Q70: How does login work?
+A: UserPreferences.login() checks if email matches stored email and if
+   password.hashCode() matches stored hash. On success, sets IS_LOGGED_IN=true.
+
+Q71: What happens during logout?
+A: preferences.logout() sets IS_LOGGED_IN=false. Navigation goes to "login"
+   with popUpTo(0) { inclusive = true } to clear entire back stack.
+
+Q72: Can the user go back to login after reaching main?
+A: Not through the back button. The navigation uses popUpTo with inclusive=true
+   to remove auth screens from the back stack when entering "main".
+
+Q73: What are the bottom navigation tabs?
+A: Dashboard (index 0), Live (1), Gait (2), History (3), Profile (4).
+
+Q74: Is each bottom tab a separate NavHost route?
+A: No. They all exist under the single "main" route. Tab switching uses
+   a selectedTab integer state, not navigation routes.
+
+
+==== CATEGORY I: AUTHENTICATION (8 questions) ====
+
+Q75: What storage mechanism is used for auth?
+A: Android DataStore Preferences (not Firebase, not Room, not SharedPreferences).
+
+Q76: How are passwords stored?
+A: Using String.hashCode().toString(). This is explicitly noted in the source
+   code as NOT cryptographically secure - it's a prototype limitation.
+
+Q77: Is there a backend server?
+A: No. All authentication is local, on-device only.
+
+Q78: Can multiple users use the app?
+A: No. DataStore stores only one set of credentials. Signing up overwrites
+   any previous user.
+
+Q79: What data persists after app restart?
+A: Only DataStore data: login state, onboarding state, user name, email,
+   password hash, age, height, weight, activity type.
+
+Q80: What data is lost when the app closes?
+A: All sensor data, risk history, session history, baseline, and calibration.
+
+Q81: How does "Forgot Password" work?
+A: It doesn't actually work. It shows a "Prototype Notice" card explaining
+   this feature would be in the production version.
+
+Q82: What does the "Remember me" checkbox do?
+A: It's visual only. It doesn't persist any state. [VERIFIED: the rememberMe
+   variable is a local remember { mutableStateOf(false) } with no save logic]
+
+
+==== CATEGORY J: TESTING (8 questions) ====
+
+Q83: How many test files and tests are there?
+A: 4 test files, 6 total tests.
+
+Q84: What testing framework is used?
+A: JUnit 4 (junit:junit:4.13.2) with kotlinx-coroutines-test for async tests.
+
+Q85: What does CommandCodecTest test?
+A: That CommandCodec.encode("PING") produces the JSON string {"command":"PING"}.
+
+Q86: What does PacketParserTest test?
+A: Two things: (1) That valid risk JSON is correctly parsed with correct values,
+   (2) That JSON with type "live" returns null when parsed as risk.
+
+Q87: What does SimulationTest test?
+A: That SimulationSource().packets().first().status equals "SIMULATION".
+
+Q88: What does CommandsAndStateTest test?
+A: That BleCommand enum wire values are correct (START_SESSION -> "START_SESSION"),
+   and that RiskState with stale=true correctly reports stale.
+
+Q89: Are there any UI tests?
+A: No. Only unit tests exist. No Espresso or Compose UI tests.
+
+Q90: Are there integration tests?
+A: No. Tests are isolated unit tests testing individual components.
+
+
+==== CATEGORY K: UI COMPONENTS (8 questions) ====
+
+Q91: What does RiskGauge draw?
+A: A 270-degree circular arc (from 135 to 405 degrees) with background track
+   and colored foreground proportional to the score (0-100). Score and level
+   text are displayed in the center.
+
+Q92: How are charts drawn?
+A: Using Compose Canvas with Path objects. Data points are mapped to x,y
+   coordinates, connected with lineTo(), and drawn with drawPath using Stroke.
+
+Q93: What charting library is used?
+A: None. All charts are custom-drawn using Compose Canvas API.
+
+Q94: What does MetricCard display?
+A: An icon, label, value, and unit in a card layout. Used for sensor readings
+   like "Heart Rate: 84.0 BPM".
+
+Q95: How does the connection indicator work?
+A: It shows a colored dot + icon + text based on ConnectionState enum:
+   CONNECTED (green), CONNECTING (blue), SCANNING (blue), ERROR (red),
+   DISCONNECTED (gray).
+
+Q96: What is the DisclaimerFooter?
+A: A centered small text that reads "Prototype risk estimation - not a medical
+   diagnosis." Shown at the bottom of every major screen.
+
+Q97: How is the AppLogo created?
+A: Using Canvas drawing: three concentric circles (15%, 30%, 100% opacity
+   of ElectricBlue) plus "SMART GAIT" text in headlineLarge style.
+
+Q98: What does the Float.fmt() extension do?
+A: Formats a Float to 1 decimal place using String.format("%.1f", this).
+   Example: 84.2345f.fmt() returns "84.2".
+
+
+==== CATEGORY L: THEME AND COLORS (8 questions) ====
+
+Q99: Is there a light mode?
+A: No. The app uses only a dark theme (darkColorScheme).
+
+Q100: What is the main background color?
+A: NavyDark (#0B1426), a very dark blue-black.
+
+Q101: What is the primary accent color?
+A: ElectricBlue (#00B4D8), a bright cyan-blue.
+
+Q102: How are risk colors determined?
+A: riskColor(value) function: >= 70 -> RiskHigh (red #FF5252),
+   >= 40 -> RiskModerate (amber #FFB300), else -> RiskLow (green #00E676).
+
+Q103: What font sizes does the app use?
+A: Ranges from displayLarge (48sp) for big numbers down to labelSmall (10sp)
+   for tiny labels. All defined in SmartGaitTypography.
+
+Q104: How does the theme set status bar color?
+A: In Theme.kt, SideEffect block gets the Activity window and sets
+   window.statusBarColor = NavyDark.toArgb().
+
+Q105: What is NavyCard color used for?
+A: Card backgrounds (#172A42). Provides slight contrast against NavyDark
+   background.
+
+Q106: Are custom fonts used?
+A: No. The app uses the default system font with different weights (Bold,
+   SemiBold, Medium) and sizes.
+
+
+==== CATEGORY M: MONITORING AND SESSIONS (8 questions) ====
+
+Q107: How does monitoring start?
+A: Call vm.startMonitoring(). It sets monitoring=true, records
+   sessionStartedAt, shows "Monitoring active" message, and sends
+   START_SESSION command to repository.
+
+Q108: How does monitoring stop?
+A: Call vm.stopMonitoring(). It creates a SessionSummary from current
+   samples and riskHistory, adds it to history, sets monitoring=false,
+   and sends STOP_SESSION command.
+
+Q109: What does a SessionSummary contain?
+A: Start/end timestamps, average HR/temp/cadence (nullable), peak overall/
+   injury/physio risk scores, and final risk level string.
+
+Q110: How are averages calculated?
+A: Using a private extension List<Float>.averageOrNull() which returns null
+   for empty lists and average().toFloat() otherwise. Applied to HR, temp,
+   and cadence values from LiveDataPacket samples.
+
+Q111: How many sessions are kept?
+A: Maximum 20, using (history + summary).takeLast(20).
+
+Q112: Is session history persisted?
+A: No. Session history is in-memory only (part of AppState StateFlow).
+   Lost when app closes.
+
+Q113: What does calibration do?
+A: Simulates 5 steps of 400ms each (2 seconds total), averaging the last
+   10 sensor samples to create a Baseline (HR, temp, heel, forefoot).
+
+Q114: What is the Baseline used for?
+A: Displayed on the Settings and Physiological screens as reference values.
+   The app shows delta (difference) between current and baseline values.
+
+
+==== CATEGORY N: PERMISSIONS (6 questions) ====
+
+Q115: What permissions does the app declare?
+A: BLUETOOTH, BLUETOOTH_ADMIN (pre-Android 12), BLUETOOTH_SCAN,
+   BLUETOOTH_CONNECT (Android 12+), ACCESS_COARSE/FINE_LOCATION (pre-12),
+   POST_NOTIFICATIONS.
+
+Q116: How does the app request permissions at runtime?
+A: In MainActivity.onCreate(), checks Build.VERSION.SDK_INT >= S (31),
+   then requests either BLE or location permissions using
+   ActivityCompat.requestPermissions().
+
+Q117: What are the request codes?
+A: 1001 for BLE permissions (Android 12+), 1002 for location (older Android).
+
+Q118: What happens if permissions are denied?
+A: BLE operations will throw SecurityException, which are caught and handled
+   (BLE classes wrap calls in try-catch). App still runs in simulation mode.
+
+Q119: Why neverForLocation flag on BLUETOOTH_SCAN?
+A: Tells Android the app doesn't use Bluetooth scanning for location purposes,
+   so no location permission is needed on Android 12+.
+
+Q120: Is POST_NOTIFICATIONS used?
+A: It's declared in the manifest but there's no notification code in the app.
+   [INFERRED: Reserved for future use]
+
+
+==== CATEGORY O: KOTLIN LANGUAGE FEATURES (10 questions) ====
+
+Q121: What is a data class?
+A: A Kotlin class that automatically generates equals(), hashCode(), toString(),
+   copy(), and componentN() functions. All models use data class.
+
+Q122: What is an enum class?
+A: A type-safe way to define a fixed set of constants. ConnectionState and
+   SimulationScenario are enum classes.
+
+Q123: What is an object declaration?
+A: A singleton pattern in Kotlin. PacketParser, CommandCodec, and BleUuids
+   are object declarations - only one instance exists.
+
+Q124: What is a companion object?
+A: A static-like member of a class. UserPreferences has a private companion
+   object holding the DataStore key constants.
+
+Q125: What does the ?.let { } pattern do?
+A: Safe call + scope function. If the value is non-null, executes the block
+   with the value as "it". Example: descriptor?.let { g.writeDescriptor(it) }
+
+Q126: What does takeIf { } do?
+A: Returns the value if the predicate is true, null otherwise. Used in
+   PacketParser: decodeFromString<RiskPacket>(...).takeIf { it.type == "risk" }
+
+Q127: What are default parameter values?
+A: Function/constructor parameters with default values. Example:
+   RiskPacket(type: String = "risk", ts: Long = 0, ...) - all fields have defaults.
+
+Q128: What is a sealed class / when expression?
+A: when is Kotlin's replacement for switch statement. Used throughout for
+   risk level determination, navigation routing, and command dispatch.
+
+Q129: What is the by keyword in Kotlin?
+A: Delegation. Used for:
+   - Property delegation: val state by vm.state.collectAsState()
+   - DataStore delegation: val Context.dataStore by preferencesDataStore(...)
+
+Q130: What is an extension function?
+A: A function added to an existing class without modifying it.
+   Float.fmt() and List<Float>.averageOrNull() are extension functions.
+
+
+==== CATEGORY P: ANDROID FUNDAMENTALS (10 questions) ====
+
+Q131: What is an Activity?
+A: A single screen in an Android app. This app has only one Activity
+   (MainActivity). All visual screens are Composable functions.
+
+Q132: What is a ViewModel?
+A: A lifecycle-aware component that survives configuration changes
+   (like screen rotation). MainViewModel holds app state.
+
+Q133: What is the Android lifecycle?
+A: The sequence of states an Activity goes through: Created -> Started ->
+   Resumed -> Paused -> Stopped -> Destroyed. ViewModel survives until
+   the Activity is permanently destroyed.
+
+Q134: What is an Intent?
+A: A messaging object for communication between Android components.
+   The manifest declares an intent-filter with MAIN/LAUNCHER, making
+   MainActivity the entry point.
+
+Q135: What is AndroidManifest.xml?
+A: The app's configuration file declaring activities, permissions, features,
+   and other metadata. Required for every Android app.
+
+Q136: What is the R class?
+A: Auto-generated class providing IDs for resources (layouts, strings, etc.).
+   This app barely uses it since Compose doesn't need XML layouts.
+
+Q137: What is the difference between compileSdk and targetSdk?
+A: compileSdk (35) = the API version used to compile. targetSdk (35) = the
+   API version the app is designed for. minSdk (26) = minimum supported.
+
+Q138: What is ViewModelProvider?
+A: A class that creates and retrieves ViewModel instances with proper lifecycle
+   management. Used in MainActivity to get MainViewModel.
+
+Q139: What is setContent { }?
+A: ComponentActivity function that sets the Compose UI tree as the activity's
+   content. Replaces setContentView(R.layout.xxx) from XML-based apps.
+
+Q140: What is an APK?
+A: Android Package Kit - the installable file format for Android apps.
+   Built using assembleDebug or assembleRelease Gradle tasks.
+
+
+==== CATEGORY Q: SECURITY AND PRIVACY (6 questions) ====
+
+Q141: Is the password storage secure?
+A: No. It uses String.hashCode() which is NOT cryptographically secure.
+   This is explicitly documented as a prototype limitation.
+
+Q142: Is data transmitted securely?
+A: BLE has inherent encryption at the link layer, but the app doesn't
+   implement additional encryption for the JSON payloads. [INFERRED]
+
+Q143: Is user data stored securely?
+A: DataStore Preferences are stored in the app's private storage directory,
+   which is not accessible to other apps. But data is not encrypted.
+
+Q144: Can other apps access the user's data?
+A: No. Android's app sandbox prevents other apps from reading the DataStore
+   files in the private app directory (unless the phone is rooted).
+
+Q145: What personal data does the app collect?
+A: Name, email, password hash, age, height, weight, activity type.
+   No data is sent to any server.
+
+Q146: What happens to data when the app is uninstalled?
+A: All DataStore files and app data are deleted. This is standard Android
+   behavior for app-private storage.
+
+
+==== CATEGORY R: ERROR HANDLING (6 questions) ====
+
+Q147: How does the app handle BLE errors?
+A: All BLE calls are wrapped in try-catch(SecurityException).
+   GattDataSource emits error strings via SharedFlow.
+
+Q148: How does the app handle JSON parsing errors?
+A: PacketParser uses runCatching { }.getOrNull(), returning null instead
+   of crashing on malformed JSON.
+
+Q149: What happens if BLE connection drops?
+A: onConnectionStateChange with STATE_DISCONNECTED triggers error emission.
+   ConnectionState updates to DISCONNECTED.
+
+Q150: Does the app show error messages to the user?
+A: Yes, via AppState.message which is shown as a Snackbar in the main app
+   scaffold. Also, login errors are shown inline in the LoginScreen.
+
+Q151: What happens if sensor data is stale?
+A: MainViewModel.markStale() sets risk.stale=true if data is older than
+   5 seconds. [INFERRED: UI could show stale indicator, but currently unused]
+
+Q152: How does the app handle permission denial?
+A: BLE operations catch SecurityException and fail silently or emit error
+   messages. The app continues to function in simulation mode.
+
+
+==== CATEGORY S: DESIGN DECISIONS (8 questions) ====
+
+Q153: Why use Kotlin instead of Java?
+A: Kotlin is the recommended language for Android development. It offers
+   null safety, data classes, coroutines, and more concise syntax.
+
+Q154: Why use Compose instead of XML layouts?
+A: Compose is the modern Android UI toolkit. It offers declarative UI,
+   automatic state management, less boilerplate, and better Kotlin integration.
+
+Q155: Why use StateFlow instead of LiveData?
+A: StateFlow is part of Kotlin coroutines, works naturally with Flow,
+   and is not Android-specific (testable without Android dependencies).
+
+Q156: Why single Activity architecture?
+A: Modern Android best practice. All navigation is handled by Compose
+   Navigation. Avoids the complexity of multiple Activities and Fragments.
+
+Q157: Why DataStore instead of SharedPreferences?
+A: DataStore is asynchronous (uses coroutines), type-safe, and handles
+   data migration. SharedPreferences is synchronous and can cause ANRs.
+
+Q158: Why not use Room database?
+A: The app only needs to persist simple key-value pairs (auth/profile).
+   Room would be overkill. Session history is intentionally in-memory only
+   for this prototype. [INFERRED]
+
+Q159: Why does the app have both BLE code and simulation?
+A: Simulation allows development and testing without hardware. The BLE code
+   is ready for when real hardware is connected. Both coexist through the
+   RiskRepository interface.
+
+Q160: Why are sensor readings in LiveDataPacket nullable (Float?)?
+A: Because real sensors may not always provide readings. If a sensor fails
+   or hasn't initialized, the value is null rather than 0 (which could be
+   confused with a real reading).
+
+
+==== CATEGORY T: ADVANCED TOPICS (8 questions) ====
+
+Q161: What is kotlinx.serialization and how does it work?
+A: A Kotlin compiler plugin that generates serialization code at compile time.
+   Classes annotated with @Serializable get auto-generated serializers.
+   Unlike Gson, it doesn't use reflection, making it faster.
+
+Q162: How does the Compose BOM work?
+A: Bill of Materials defines compatible versions for all Compose libraries.
+   You declare the BOM platform, then add individual libraries without versions.
+   Gradle resolves compatible versions automatically.
+
+Q163: What is the CCCD (Client Characteristic Configuration Descriptor)?
+A: A standard BLE descriptor (UUID 00002902-...) that controls notifications.
+   Writing 0x0001 enables notifications, 0x0000 disables them. Essential for
+   receiving push updates from BLE devices.
+
+Q164: How does the Compose navigation back stack work?
+A: NavController maintains a stack of routes. navigate() pushes a new route.
+   popBackStack() pops the current route. popUpTo("route") { inclusive = true }
+   pops everything up to and including that route.
+
+Q165: What is the difference between MutableStateFlow and MutableSharedFlow?
+A: StateFlow always has a current value (like a variable that can be observed).
+   SharedFlow doesn't have a current value by default; it only emits events.
+   StateFlow conflates - if you emit faster than collectors can process,
+   intermediate values are dropped.
+
+Q166: How does @SuppressLint("MissingPermission") work?
+A: It suppresses the lint warning about missing Bluetooth permission checks.
+   The actual permission check is done manually in the code (or in GattDataSource,
+   using the allowed() helper function).
+
+Q167: What is extraBufferCapacity in SharedFlow?
+A: The number of values that can be buffered before tryEmit returns false.
+   The BLE flows use extraBufferCapacity=1 (minimal buffer) and packet flows
+   use 16 (larger buffer for BLE data).
+
+Q168: What is a Protocol Buffer (.pb) file?
+A: The binary format used by DataStore Preferences to store data on disk.
+   It's more efficient than JSON/XML and is read/written by the DataStore
+   library automatically.
+
+
+================================================================================
+PHASE 12 — 7-DAY STUDY PLAN
+================================================================================
+
+DAY 1: FOUNDATION
+  Morning:  Read Phase 1 (Project Inventory) and Phase 2 (Architecture)
+  Afternoon: Open the project in Android Studio, explore the file structure
+  Evening:  Read Phase 9 (Build System), try building the project
+
+DAY 2: CORE DATA FLOW
+  Morning:  Read Phase 3, sections 3.1-3.6 (Protocol + Data + Repository)
+  Afternoon: Trace the data flow: SimulationSource -> Repository -> ViewModel
+  Evening:  Read Phase 6 (Risk Calculation), work through the examples
+
+DAY 3: VIEWMODEL AND STATE
+  Morning:  Read Phase 3, section 3.12 (MainViewModel) carefully
+  Afternoon: Understand AppState - draw it out on paper with all fields
+  Evening:  Read Phase 4 (Data Storage), understand what persists
+
+DAY 4: BLE COMMUNICATION
+  Morning:  Read Phase 3, sections 3.7-3.11 (all BLE files)
+  Afternoon: Read Phase 5 (BLE Communication Path) end-to-end
+  Evening:  Read Phase 3, section 3.14 (Navigation)
+
+DAY 5: UI AND SCREENS
+  Morning:  Read Phase 3, sections 3.15-3.19 (Theme + Components)
+  Afternoon: Read Phase 3, sections 3.20-3.33 (all screens)
+  Evening:  Read Phase 7 (Every Screen and Button), compare with actual app
+
+DAY 6: KOTLIN AND ANDROID CONCEPTS
+  Morning:  Read Phase 8 (UI and Android Fundamentals)
+  Afternoon: Read Category O and P viva questions (Kotlin + Android)
+  Evening:  Read Phase 10 (Troubleshooting)
+
+DAY 7: VIVA PREPARATION
+  Morning:  Go through ALL viva questions (Phase 11), mark ones you struggle with
+  Afternoon: Practice explaining the architecture diagram and data flow out loud
+  Evening:  Read Phase 13 (Quick Revision), review marked questions
+  Final:    Try explaining the entire app to someone else in 5 minutes
+
+
+================================================================================
+PHASE 13 — QUICK-REVISION SHEET
+================================================================================
+
+PROJECT: Smart Gait Monitoring and Early Injury-Risk Detection System
+PACKAGE: com.idp.smartgait
+LANGUAGE: Kotlin | FRAMEWORK: Jetpack Compose | ARCH: MVVM
+SDK: min 26, target 35, compile 35 | Kotlin 1.9.24 | Gradle 8.7 | JDK 17
+
+ENTRY POINT:
+  MainActivity -> SmartGaitTheme -> AppNavigation(mainViewModel)
+
+DATA FLOW:
+  SimulationSource -> Repository -> MainViewModel (StateFlow<AppState>) -> UI
+
+KEY FILES:
+  SimulationSource.kt = generates fake data every 1 second
+  BleRepository.kt    = RiskRepository interface + Repository implementation
+  MainViewModel.kt    = holds AppState, handles all user actions
+  Models.kt           = AppState, ConnectionState, SessionSummary, Baseline
+  Packets.kt          = RiskPacket, LiveDataPacket, StatusPacket
+  PacketParser.kt     = JSON bytes -> typed packets
+  AppNavigation.kt    = navigation graph + bottom tabs
+
+BLE UUIDS:
+  Service: 7e3a0001-..., Live: 7e3a0002-..., Risk: 7e3a0003-...,
+  Status: 7e3a0004-..., Command: 7e3a0005-...
+  Device: "SMART_GAIT_001"
+
+RISK THRESHOLDS:
+  LOW: 0-39 (green) | MODERATE: 40-69 (amber) | HIGH: 70-100 (red)
+
+RISK COMPONENT WEIGHTS (on ESP32):
+  Pressure deviation 35% | Gait-motion 25% | Impact 20% | Gait-cycle 20%
+
+SIMULATION SCENARIOS:
+  SMOOTH: 25-43 | ELEVATED: 62-74 | ALERT: 90
+
+NAVIGATION FLOW:
+  splash -> onboarding -> login -> signup -> profile_setup -> main
+  main has 5 tabs: Dashboard, Live, Gait, History, Profile/Settings
+
+DATA PERSISTENCE:
+  DataStore Preferences: login, profile (PERSISTS)
+  StateFlow: sessions, samples, baseline (IN-MEMORY ONLY, LOST ON CLOSE)
+
+AUTH: Local DataStore, String.hashCode() hashing (NOT SECURE, prototype only)
+
+TESTS: 4 files, 6 tests (CommandCodec, Commands+State, PacketParser, Simulation)
+
+KEY LIBRARIES:
+  Compose BOM 2024.09, Material 3, Navigation Compose 2.7.7,
+  DataStore Preferences 1.1.1, kotlinx-serialization-json 1.6.3,
+  Lifecycle 2.8.4, Coroutines 1.8.1
+
+PERMISSIONS:
+  BLUETOOTH_SCAN + BLUETOOTH_CONNECT (Android 12+)
+  BLUETOOTH + LOCATION (pre-Android 12)
+  POST_NOTIFICATIONS
+
+SENSORS ON ESP32:
+  2x FSR (heel + forefoot) | MPU6050 (accelerometer) |
+  MAX30102 (heart rate) | MAX30205 (temperature) | Vibration motor
+
+COROUTINE TYPES:
+  Flow = cold stream | SharedFlow = hot stream, multiple collectors
+  StateFlow = hot, always has value | viewModelScope = lifecycle-aware scope
+
+COMPOSE CONCEPTS:
+  @Composable = UI function | remember = survive recomposition
+  mutableStateOf = trigger recomposition | collectAsState = Flow -> State
+  LazyColumn = efficient scrolling list | Modifier = layout/appearance chain
+  Canvas = custom drawing | LaunchedEffect = side effect on composition
+
+IMPORTANT DISCLAIMER IN APP:
+  "Prototype risk estimation - not a medical diagnosis."
+
+
+================================================================================
+END OF STUDY GUIDE
+================================================================================
+
+Total files read:    45 (all source, test, config, manifest, resource, readme)
+Verification level:  All code references are [VERIFIED] from source files
+Study guide created: D:\IDP\android_app\SMART_GAIT_COMPLETE_APP_STUDY_GUIDE.txt
+

@@ -1,0 +1,17 @@
+{
+  "data_source": "SIMULATED_DATA",
+  "timestamp": "2026-01-01T00:00:00.000Z",
+  "activity_state": "REST",
+  "sensors": {
+    "heel_fsr_raw": 77,
+    "forefoot_fsr_raw": 77,
+    "accel_x_mps2": -0.0033394758470298735,
+    "accel_y_mps2": 0.02105951175296589,
+    "accel_z_mps2": 9.806172351486515,
+    "gyro_x_dps": -0.44920602430228723,
+    "gyro_y_dps": 0.09969550322031458,
+    "gyro_z_dps": -0.08020124354915047,
+    "heart_rate_bpm": 71.82643305268384,
+    "temperature_c": 30.002897119667523
+  }
+}
