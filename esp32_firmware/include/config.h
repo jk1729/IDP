@@ -1,7 +1,7 @@
 #pragma once
 
 #define DEBUG_LOGGING 1
-#define SIMULATION_MODE 1
+#define SIMULATION_MODE 0
 
 // Verify every pin against the exact ESP32 DevKit/WROOM board before hardware integration.
 #define FSR_HEEL_PIN 34

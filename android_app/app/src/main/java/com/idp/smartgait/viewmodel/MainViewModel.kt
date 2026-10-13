@@ -1,7 +1,7 @@
 package com.idp.smartgait.viewmodel
 import androidx.lifecycle.ViewModel; import androidx.lifecycle.viewModelScope; import com.idp.smartgait.data.*; import com.idp.smartgait.repository.*; import kotlinx.coroutines.flow.*; import kotlinx.coroutines.launch
 class MainViewModel(private val repository:RiskRepository=Repository()):ViewModel() {
- private val _state=MutableStateFlow(AppState(simulation=true)); val state:StateFlow<AppState> = _state.asStateFlow()
+ private val _state=MutableStateFlow(AppState(simulation=false)); val state:StateFlow<AppState> = _state.asStateFlow()
 
  // ── Additional UI state (purely additive) ──────────────
  private val _selectedScenario = MutableStateFlow(SimulationScenario.SMOOTH)
@@ -48,7 +48,7 @@ class MainViewModel(private val repository:RiskRepository=Repository()):ViewMode
  fun scenario(s:SimulationScenario){
   repository.selectScenario(s)
   _selectedScenario.value = s
-  _state.update{it.copy(message="${s.name.lowercase().replaceFirstChar(Char::uppercase)} simulation selected")}
+  _state.update{it.copy(simulation=true, message="${s.name.lowercase().replaceFirstChar(Char::uppercase)} simulation selected")}
  }
  fun markStale(now:Long=System.currentTimeMillis(), timeout:Long=5000){_state.update{it.copy(risk=it.risk.copy(stale=now-it.risk.receivedAt>timeout))}}
 

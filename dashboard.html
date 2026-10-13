@@ -1,0 +1,1161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32 Dual FSR Real-Time Monitor</title>
+  <style>
+    :root {
+      --bg-dark: #0B1120;
+      --card-bg: #131E33;
+      --card-border: #1E2E4B;
+      --card-hover: #192642;
+      --text-main: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --text-muted: #64748B;
+      --fsr1-color: #38BDF8;      /* Electric Cyan for FSR1 Heel */
+      --fsr1-glow: rgba(56, 189, 248, 0.25);
+      --fsr2-color: #F59E0B;      /* Warm Amber for FSR2 Forefoot */
+      --fsr2-glow: rgba(245, 158, 11, 0.25);
+      --accent-green: #10B981;
+      --accent-red: #EF4444;
+      --accent-yellow: #FACC15;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+      --radius-sm: 8px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* ── Header ────────────────────────────────────────────── */
+    header {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px 28px;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .brand-title {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand-title h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chip-hw {
+      background: rgba(56, 189, 248, 0.12);
+      color: var(--fsr1-color);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .brand-title p {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      transition: all 0.25s ease;
+    }
+
+    .status-badge.connected {
+      background: rgba(16, 185, 129, 0.12);
+      color: var(--accent-green);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .status-badge.connecting {
+      background: rgba(250, 204, 21, 0.12);
+      color: var(--accent-yellow);
+      border-color: rgba(250, 204, 21, 0.3);
+    }
+
+    .status-badge.disconnected {
+      background: rgba(148, 163, 184, 0.1);
+      color: var(--text-secondary);
+      border-color: rgba(148, 163, 184, 0.2);
+    }
+
+    .status-badge.error {
+      background: rgba(239, 68, 68, 0.12);
+      color: var(--accent-red);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-dot.pulsing {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.4; transform: scale(0.9); }
+      50% { opacity: 1; transform: scale(1.15); }
+      100% { opacity: 0.4; transform: scale(0.9); }
+    }
+
+    .stale-tag {
+      background: rgba(239, 68, 68, 0.2);
+      color: var(--accent-red);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      display: none;
+      animation: pulse 1s infinite;
+    }
+
+    .port-selector-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 4px 8px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--card-border);
+    }
+
+    select, button {
+      background: var(--card-bg);
+      color: var(--text-main);
+      border: 1px solid var(--card-border);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      cursor: pointer;
+      outline: none;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    select:hover, button:hover {
+      border-color: var(--fsr1-color);
+    }
+
+    button.primary-btn {
+      background: #0284C7;
+      border-color: #0284C7;
+      font-weight: 600;
+    }
+
+    button.primary-btn:hover {
+      background: #0369A1;
+    }
+
+    /* ── Alert Banner ──────────────────────────────────────── */
+    .alert-banner {
+      display: none;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      color: #FECACA;
+      font-size: 13px;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .alert-banner.active {
+      display: flex;
+    }
+
+    /* ── Metrics Grid ──────────────────────────────────────── */
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
+    .sensor-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .sensor-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 4px;
+    }
+
+    .sensor-card.fsr1::before {
+      background: var(--fsr1-color);
+      box-shadow: 0 0 12px var(--fsr1-color);
+    }
+
+    .sensor-card.fsr2::before {
+      background: var(--fsr2-color);
+      box-shadow: 0 0 12px var(--fsr2-color);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pin-badge {
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-secondary);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .state-pill {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 600;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-secondary);
+    }
+
+    .state-pill.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+    }
+
+    .state-pill.saturated {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--accent-red);
+    }
+
+    .primary-metric {
+      margin-bottom: 16px;
+    }
+
+    .metric-value-large {
+      font-size: 42px;
+      font-weight: 800;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      margin-bottom: 6px;
+    }
+
+    .fsr1 .metric-value-large { color: var(--fsr1-color); }
+    .fsr2 .metric-value-large { color: var(--fsr2-color); }
+
+    .metric-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar-bg {
+      background: rgba(255, 255, 255, 0.06);
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 4px;
+      transition: width 0.1s linear;
+    }
+
+    .fsr1 .progress-bar-fill { background: var(--fsr1-color); }
+    .fsr2 .progress-bar-fill { background: var(--fsr2-color); }
+
+    .secondary-metrics {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 18px;
+      padding-top: 16px;
+      border-top: 1px solid var(--card-border);
+    }
+
+    .sub-metric-box {
+      background: rgba(0, 0, 0, 0.15);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+    }
+
+    .sub-metric-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .sub-metric-val {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sub-metric-val.unavailable {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      font-style: italic;
+    }
+
+    /* ── Balance Card ──────────────────────────────────────── */
+    .balance-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 22px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .balance-bar-container {
+      margin: 18px 0;
+    }
+
+    .balance-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .balance-track {
+      height: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 7px;
+      overflow: hidden;
+      display: flex;
+    }
+
+    .balance-segment-heel {
+      height: 100%;
+      background: var(--fsr1-color);
+      width: 50%;
+      transition: width 0.1s linear;
+    }
+
+    .balance-segment-forefoot {
+      height: 100%;
+      background: var(--fsr2-color);
+      width: 50%;
+      transition: width 0.1s linear;
+    }
+
+    .balance-status-tag {
+      text-align: center;
+      padding: 8px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    /* ── Charts Section ────────────────────────────────────── */
+    .charts-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+      gap: 20px;
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .chart-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .chart-legend {
+      display: flex;
+      gap: 14px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    canvas.realtime-canvas {
+      width: 100%;
+      height: 170px;
+      display: block;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: var(--radius-sm);
+    }
+
+    /* ── Diagnostics & Footer ──────────────────────────────── */
+    footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      padding: 16px 20px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: var(--radius-md);
+      font-size: 12px;
+      color: var(--text-secondary);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .diag-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .diag-val {
+      color: var(--text-main);
+      font-weight: 600;
+      font-family: monospace;
+    }
+
+    /* Modal / Tooltip */
+    .note-box {
+      background: rgba(56, 189, 248, 0.05);
+      border-left: 3px solid var(--fsr1-color);
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    }
+
+    @media (max-width: 768px) {
+      body { padding: 14px; }
+      .charts-container { grid-template-columns: 1fr; }
+      .metric-value-large { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Header ──────────────────────────────────────────── -->
+  <header>
+    <div class="brand-title">
+      <h1>
+        ESP32 Dual FSR Monitor
+        <span class="chip-hw">Physical Hardware</span>
+      </h1>
+      <p>Real-time ADC, Voltage &amp; Resistance Pipeline • Sampling ~100ms</p>
+    </div>
+
+    <div class="header-controls">
+      <div id="staleBadge" class="stale-tag">STALE DATA</div>
+
+      <div id="statusBadge" class="status-badge connecting">
+        <span id="statusDot" class="status-dot pulsing"></span>
+        <span id="statusText">Connecting...</span>
+      </div>
+
+      <div class="port-selector-wrapper">
+        <label for="portSelect" style="font-size: 11px; color: var(--text-muted); font-weight: 600;">PORT:</label>
+        <select id="portSelect">
+          <option value="">Auto-detecting...</option>
+        </select>
+        <button id="reconnectBtn" title="Reconnect Serial">Reconnect</button>
+      </div>
+
+      <button id="exportBtn" class="primary-btn" title="Export Captured Data as CSV">Export CSV</button>
+    </div>
+  </header>
+
+  <!-- ── Alert Banner ────────────────────────────────────── -->
+  <div id="alertBanner" class="alert-banner">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span style="font-size: 18px;">⚠</span>
+      <span id="alertMessage">Hardware connection lost. Displaying last readings as stale.</span>
+    </div>
+    <button onclick="document.getElementById('alertBanner').classList.remove('active')" style="background: transparent; border: 1px solid rgba(255,255,255,0.2);">Dismiss</button>
+  </div>
+
+  <!-- ── Real-Time Metrics Cards ─────────────────────────── -->
+  <div class="metrics-grid">
+    <!-- FSR 1: Heel Sensor (GPIO 34) -->
+    <div class="sensor-card fsr1">
+      <div class="card-header">
+        <div class="card-title">
+          FSR 1 — Heel
+          <span class="pin-badge">GPIO 34</span>
+        </div>
+        <div id="statePill1" class="state-pill">No Load</div>
+      </div>
+
+      <div class="primary-metric">
+        <div class="metric-sub">
+          <span>ADC RAW COUNT (12-BIT)</span>
+          <span id="fsr1Pct">0.0%</span>
+        </div>
+        <div id="raw1Val" class="metric-value-large">—</div>
+        <div class="progress-bar-bg">
+          <div id="raw1Bar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <div class="secondary-metrics">
+        <div class="sub-metric-box">
+          <div class="sub-metric-label">VOLTAGE</div>
+          <div id="volt1Val" class="sub-metric-val">— V</div>
+        </div>
+        <div class="sub-metric-box">
+          <div class="sub-metric-label">RESISTANCE</div>
+          <div id="res1Val" class="sub-metric-val">— Ω</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FSR 2: Forefoot Sensor (GPIO 35) -->
+    <div class="sensor-card fsr2">
+      <div class="card-header">
+        <div class="card-title">
+          FSR 2 — Forefoot
+          <span class="pin-badge">GPIO 35</span>
+        </div>
+        <div id="statePill2" class="state-pill">No Load</div>
+      </div>
+
+      <div class="primary-metric">
+        <div class="metric-sub">
+          <span>ADC RAW COUNT (12-BIT)</span>
+          <span id="fsr2Pct">0.0%</span>
+        </div>
+        <div id="raw2Val" class="metric-value-large">—</div>
+        <div class="progress-bar-bg">
+          <div id="raw2Bar" class="progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <div class="secondary-metrics">
+        <div class="sub-metric-box">
+          <div class="sub-metric-label">VOLTAGE</div>
+          <div id="volt2Val" class="sub-metric-val">— V</div>
+        </div>
+        <div class="sub-metric-box">
+          <div class="sub-metric-label">RESISTANCE</div>
+          <div id="res2Val" class="sub-metric-val">— Ω</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Relative Balance & Loading -->
+    <div class="balance-card">
+      <div>
+        <div class="card-header" style="margin-bottom: 8px;">
+          <div class="card-title">Heel vs Forefoot Loading</div>
+          <span id="dominanceBadge" class="state-pill">Balanced</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-secondary);">Relative pressure split between FSR 1 and FSR 2</p>
+
+        <div class="balance-bar-container">
+          <div class="balance-labels">
+            <span style="color: var(--fsr1-color);">Heel: <strong id="heelSplitText">50%</strong></span>
+            <span style="color: var(--fsr2-color);">Forefoot: <strong id="forefootSplitText">50%</strong></span>
+          </div>
+          <div class="balance-track">
+            <div id="balanceHeelBar" class="balance-segment-heel"></div>
+            <div id="balanceForefootBar" class="balance-segment-forefoot"></div>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div class="secondary-metrics" style="margin-top: 0; padding-top: 12px;">
+          <div class="sub-metric-box">
+            <div class="sub-metric-label">TOTAL RAW SUM</div>
+            <div id="totalRawVal" class="sub-metric-val">—</div>
+          </div>
+          <div class="sub-metric-box">
+            <div class="sub-metric-label">ACTIVE SENSORS</div>
+            <div id="activeSensorsVal" class="sub-metric-val">2 / 2</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Live Rolling Charts ─────────────────────────────── -->
+  <div class="charts-container">
+    <!-- Chart 1: Raw ADC Over Time -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Raw ADC Readings (0 – 4095)</div>
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--fsr1-color);"></span> FSR1 Heel</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--fsr2-color);"></span> FSR2 Forefoot</div>
+        </div>
+      </div>
+      <canvas id="adcChart" class="realtime-canvas"></canvas>
+    </div>
+
+    <!-- Chart 2: Voltage Over Time -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Sensor Voltage (0.0 – 3.3 V)</div>
+        <div class="chart-legend">
+          <div class="legend-item"><span class="legend-dot" style="background: var(--fsr1-color);"></span> FSR1 Voltage</div>
+          <div class="legend-item"><span class="legend-dot" style="background: var(--fsr2-color);"></span> FSR2 Voltage</div>
+        </div>
+      </div>
+      <canvas id="voltChart" class="realtime-canvas"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Calibration & Technical Note ────────────────────── -->
+  <div class="note-box">
+    <strong>Hardware Accuracy Notice:</strong> Force Sensitive Resistors exhibit non-linear resistance profiles and unit-to-unit tolerances. Values are reported in calibrated physical SI units: raw ADC counts, voltage in Volts (V), and resistance in Ohms (Ω). A resistance of <em>Unavailable</em> occurs near the ADC limits (near 0 count or saturation ≥ 4090 count) where voltage divider resistance calculation is numerically unreliable.
+  </div>
+
+  <!-- ── Diagnostics Footer ──────────────────────────────── -->
+  <footer>
+    <div class="diag-item">
+      <span>COM PORT:</span>
+      <span id="diagPort" class="diag-val">—</span>
+    </div>
+    <div class="diag-item">
+      <span>SAMPLING RATE:</span>
+      <span id="diagRate" class="diag-val">— Hz (~100ms)</span>
+    </div>
+    <div class="diag-item">
+      <span>TOTAL SAMPLES:</span>
+      <span id="diagSamples" class="diag-val">0</span>
+    </div>
+    <div class="diag-item">
+      <span>LAST READING:</span>
+      <span id="diagLastTime" class="diag-val">—</span>
+    </div>
+  </footer>
+
+  <!-- ── Client Script ────────────────────────────────────── -->
+  <script>
+    // Configuration
+    const POLL_INTERVAL_MS = 100;
+    const STALE_TIMEOUT_MS = 1500;
+    const MAX_POINTS = 120; // 12 seconds of history at 10Hz
+
+    // State
+    let lastReceivedTimestamp = 0;
+    let sampleCounter = 0;
+    let lastSampleTime = performance.now();
+    let currentSampleHz = 0;
+    let capturedSession = [];
+
+    // Rolling data buffers
+    const chartData = {
+      raw1: [],
+      raw2: [],
+      volt1: [],
+      volt2: []
+    };
+
+    // DOM Elements
+    const statusBadge = document.getElementById('statusBadge');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const staleBadge = document.getElementById('staleBadge');
+    const portSelect = document.getElementById('portSelect');
+    const reconnectBtn = document.getElementById('reconnectBtn');
+    const exportBtn = document.getElementById('exportBtn');
+    const alertBanner = document.getElementById('alertBanner');
+    const alertMessage = document.getElementById('alertMessage');
+
+    const raw1Val = document.getElementById('raw1Val');
+    const raw2Val = document.getElementById('raw2Val');
+    const raw1Bar = document.getElementById('raw1Bar');
+    const raw2Bar = document.getElementById('raw2Bar');
+    const fsr1Pct = document.getElementById('fsr1Pct');
+    const fsr2Pct = document.getElementById('fsr2Pct');
+    const volt1Val = document.getElementById('volt1Val');
+    const volt2Val = document.getElementById('volt2Val');
+    const res1Val = document.getElementById('res1Val');
+    const res2Val = document.getElementById('res2Val');
+    const statePill1 = document.getElementById('statePill1');
+    const statePill2 = document.getElementById('statePill2');
+
+    const balanceHeelBar = document.getElementById('balanceHeelBar');
+    const balanceForefootBar = document.getElementById('balanceForefootBar');
+    const heelSplitText = document.getElementById('heelSplitText');
+    const forefootSplitText = document.getElementById('forefootSplitText');
+    const dominanceBadge = document.getElementById('dominanceBadge');
+    const totalRawVal = document.getElementById('totalRawVal');
+
+    const diagPort = document.getElementById('diagPort');
+    const diagRate = document.getElementById('diagRate');
+    const diagSamples = document.getElementById('diagSamples');
+    const diagLastTime = document.getElementById('diagLastTime');
+
+    // Canvases
+    const adcCanvas = document.getElementById('adcChart');
+    const voltCanvas = document.getElementById('voltChart');
+
+    function resizeCanvas(canvas) {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+    }
+
+    function initCanvases() {
+      resizeCanvas(adcCanvas);
+      resizeCanvas(voltCanvas);
+    }
+    window.addEventListener('resize', initCanvases);
+    initCanvases();
+
+    // ── Helper: Format Resistance ─────────────────────────
+    function formatResistance(res) {
+      if (res === null || res === undefined || res < 0) {
+        return '<span class="unavailable">Unavailable</span>';
+      }
+      if (res >= 1000000) {
+        return `${(res / 1000000).toFixed(2)} MΩ (${res.toLocaleString('en-US', {maximumFractionDigits: 0})} Ω)`;
+      }
+      if (res >= 1000) {
+        return `${(res / 1000).toFixed(1)} kΩ (${res.toLocaleString('en-US', {maximumFractionDigits: 0})} Ω)`;
+      }
+      return `${res.toFixed(1)} Ω`;
+    }
+
+    // ── Update Connection Status ──────────────────────────
+    function setConnectionStatus(state, message, port) {
+      statusBadge.className = 'status-badge ' + state.toLowerCase();
+      statusText.textContent = message;
+      diagPort.textContent = port || '—';
+
+      if (state === 'CONNECTED') {
+        statusDot.className = 'status-dot';
+      } else if (state === 'CONNECTING') {
+        statusDot.className = 'status-dot pulsing';
+      } else {
+        statusDot.className = 'status-dot';
+      }
+    }
+
+    // ── Fetch Available Ports ─────────────────────────────
+    async function loadPorts() {
+      try {
+        const res = await fetch('/ports');
+        if (!res.ok) return;
+        const data = await res.json();
+        const current = data.current_port || '';
+        portSelect.innerHTML = '';
+
+        if (!data.ports || data.ports.length === 0) {
+          portSelect.innerHTML = '<option value="">No COM Ports Found</option>';
+          return;
+        }
+
+        data.ports.forEach(p => {
+          const opt = document.createElement('option');
+          opt.value = p.device;
+          opt.textContent = `${p.device} (${p.description})`;
+          if (p.device === current) opt.selected = true;
+          portSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.warn('Could not load ports:', err);
+      }
+    }
+
+    // ── Reconnect Handler ─────────────────────────────────
+    reconnectBtn.addEventListener('click', async () => {
+      const selectedPort = portSelect.value;
+      setConnectionStatus('CONNECTING', `Connecting to ${selectedPort}...`, selectedPort);
+      try {
+        await fetch(`/connect?port=${encodeURIComponent(selectedPort)}`);
+      } catch (err) {
+        console.error('Reconnect failed:', err);
+      }
+    });
+
+    portSelect.addEventListener('change', async () => {
+      const selectedPort = portSelect.value;
+      if (selectedPort) {
+        setConnectionStatus('CONNECTING', `Switching to ${selectedPort}...`, selectedPort);
+        await fetch(`/connect?port=${encodeURIComponent(selectedPort)}`);
+      }
+    });
+
+    // ── Process Incoming Real-Time Reading ────────────────
+    function handleReading(data) {
+      const now = performance.now();
+      const dt = (now - lastSampleTime) / 1000;
+      if (dt > 0.02) {
+        currentSampleHz = Math.round((1 / dt) * 10) / 10;
+        lastSampleTime = now;
+      }
+
+      const isStale = data.stale || false;
+      const isConnected = data.connected && !isStale;
+
+      if (isStale) {
+        staleBadge.style.display = 'block';
+        alertBanner.classList.add('active');
+        alertMessage.textContent = 'Hardware disconnected or paused. Preserving last known readings as stale.';
+      } else {
+        staleBadge.style.display = 'none';
+        alertBanner.classList.remove('active');
+      }
+
+      if (isConnected) {
+        setConnectionStatus('CONNECTED', 'Connected (Live)', data.port);
+      } else if (data.state === 'CONNECTING') {
+        setConnectionStatus('CONNECTING', 'Connecting...', data.port);
+      } else if (data.state === 'ERROR') {
+        setConnectionStatus('ERROR', data.error || 'Connection error', data.port);
+      } else {
+        setConnectionStatus('DISCONNECTED', 'Disconnected', data.port);
+      }
+
+      // Check if valid physical readings exist
+      if (data.raw1 !== null && data.raw1 !== undefined && data.raw2 !== null && data.raw2 !== undefined) {
+        lastReceivedTimestamp = data.updated ? data.updated * 1000 : Date.now();
+        sampleCounter = data.samples_count || (sampleCounter + 1);
+
+        const r1 = data.raw1;
+        const r2 = data.raw2;
+        const v1 = data.voltage1;
+        const v2 = data.voltage2;
+        const res1 = data.resistance1;
+        const res2 = data.resistance2;
+
+        // Save for export
+        capturedSession.push({
+          time: new Date(lastReceivedTimestamp).toISOString(),
+          raw1: r1,
+          volt1: v1,
+          res1: res1 !== null ? res1 : -1,
+          raw2: r2,
+          volt2: v2,
+          res2: res2 !== null ? res2 : -1
+        });
+        if (capturedSession.length > 5000) capturedSession.shift();
+
+        // Push to rolling charts
+        chartData.raw1.push(r1);
+        chartData.raw2.push(r2);
+        chartData.volt1.push(v1);
+        chartData.volt2.push(v2);
+
+        if (chartData.raw1.length > MAX_POINTS) {
+          chartData.raw1.shift();
+          chartData.raw2.shift();
+          chartData.volt1.shift();
+          chartData.volt2.shift();
+        }
+
+        // FSR 1 UI
+        raw1Val.textContent = r1;
+        const p1 = Math.min(100, Math.max(0, (r1 / 4095) * 100));
+        raw1Bar.style.width = p1.toFixed(1) + '%';
+        fsr1Pct.textContent = p1.toFixed(1) + '%';
+        volt1Val.textContent = v1.toFixed(4) + ' V';
+        res1Val.innerHTML = formatResistance(res1);
+
+        if (r1 >= 4090) {
+          statePill1.textContent = 'ADC Saturated';
+          statePill1.className = 'state-pill saturated';
+        } else if (r1 < 20) {
+          statePill1.textContent = 'No Load';
+          statePill1.className = 'state-pill';
+        } else {
+          statePill1.textContent = 'Active Load';
+          statePill1.className = 'state-pill active';
+        }
+
+        // FSR 2 UI
+        raw2Val.textContent = r2;
+        const p2 = Math.min(100, Math.max(0, (r2 / 4095) * 100));
+        raw2Bar.style.width = p2.toFixed(1) + '%';
+        fsr2Pct.textContent = p2.toFixed(1) + '%';
+        volt2Val.textContent = v2.toFixed(4) + ' V';
+        res2Val.innerHTML = formatResistance(res2);
+
+        if (r2 >= 4090) {
+          statePill2.textContent = 'ADC Saturated';
+          statePill2.className = 'state-pill saturated';
+        } else if (r2 < 20) {
+          statePill2.textContent = 'No Load';
+          statePill2.className = 'state-pill';
+        } else {
+          statePill2.textContent = 'Active Load';
+          statePill2.className = 'state-pill active';
+        }
+
+        // Balance & split calculation
+        const totalRaw = r1 + r2;
+        totalRawVal.textContent = totalRaw;
+
+        if (totalRaw > 20) {
+          const heelSplit = Math.round((r1 / totalRaw) * 100);
+          const forefootSplit = 100 - heelSplit;
+          balanceHeelBar.style.width = heelSplit + '%';
+          balanceForefootBar.style.width = forefootSplit + '%';
+          heelSplitText.textContent = heelSplit + '%';
+          forefootSplitText.textContent = forefootSplit + '%';
+
+          if (heelSplit > 60) {
+            dominanceBadge.textContent = 'Heel Dominant';
+          } else if (heelSplit < 40) {
+            dominanceBadge.textContent = 'Forefoot Dominant';
+          } else {
+            dominanceBadge.textContent = 'Balanced Loading';
+          }
+        } else {
+          balanceHeelBar.style.width = '50%';
+          balanceForefootBar.style.width = '50%';
+          heelSplitText.textContent = '0%';
+          forefootSplitText.textContent = '0%';
+          dominanceBadge.textContent = 'No Contact';
+        }
+
+        // Diagnostics
+        diagSamples.textContent = sampleCounter.toLocaleString();
+        diagRate.textContent = `${currentSampleHz || '~10'} Hz (~100ms)`;
+        diagLastTime.textContent = 'Just now';
+      }
+    }
+
+    // ── Check Stale Readings ──────────────────────────────
+    setInterval(() => {
+      if (lastReceivedTimestamp > 0) {
+        const elapsed = Math.round((Date.now() - lastReceivedTimestamp) / 1000);
+        if (elapsed > 1) {
+          diagLastTime.textContent = `${elapsed}s ago`;
+          if (elapsed >= 2) {
+            staleBadge.style.display = 'block';
+          }
+        }
+      }
+    }, 1000);
+
+    // ── High Performance Canvas Chart Renderer ───────────
+    function renderLineChart(canvas, series1, series2, minY, maxY, color1, color2, label1, label2, thresholdY = null) {
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      const dpr = window.devicePixelRatio || 1;
+      const padLeft = 40 * dpr;
+      const padRight = 15 * dpr;
+      const padTop = 15 * dpr;
+      const padBottom = 25 * dpr;
+      const plotW = w - padLeft - padRight;
+      const plotH = h - padTop - padBottom;
+
+      // Draw Grid Lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1 * dpr;
+      const gridSteps = 4;
+      ctx.fillStyle = '#64748B';
+      ctx.font = `${10 * dpr}px sans-serif`;
+      ctx.textAlign = 'right';
+
+      for (let i = 0; i <= gridSteps; i++) {
+        const val = minY + (maxY - minY) * (i / gridSteps);
+        const y = padTop + plotH * (1 - i / gridSteps);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, y);
+        ctx.lineTo(w - padRight, y);
+        ctx.stroke();
+        ctx.fillText(val.toFixed(val < 10 ? 1 : 0), padLeft - 6 * dpr, y + 3 * dpr);
+      }
+
+      // Draw Optional Threshold Line
+      if (thresholdY !== null && thresholdY <= maxY && thresholdY >= minY) {
+        const threshY = padTop + plotH * (1 - (thresholdY - minY) / (maxY - minY));
+        ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+        ctx.setLineDash([4 * dpr, 4 * dpr]);
+        ctx.beginPath();
+        ctx.moveTo(padLeft, threshY);
+        ctx.lineTo(w - padRight, threshY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#EF4444';
+        ctx.fillText('Saturation', w - padRight, threshY - 4 * dpr);
+      }
+
+      // Draw Series 1
+      function drawSeries(data, color) {
+        if (data.length < 2) return;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2 * dpr;
+        ctx.beginPath();
+        data.forEach((val, idx) => {
+          const normY = Math.min(1, Math.max(0, (val - minY) / (maxY - minY)));
+          const x = padLeft + (idx / (MAX_POINTS - 1)) * plotW;
+          const y = padTop + plotH * (1 - normY);
+          if (idx === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+
+      drawSeries(series1, color1);
+      drawSeries(series2, color2);
+    }
+
+    function drawCharts() {
+      renderLineChart(adcCanvas, chartData.raw1, chartData.raw2, 0, 4095, '#38BDF8', '#F59E0B', 'Heel', 'Forefoot', 4090);
+      renderLineChart(voltCanvas, chartData.volt1, chartData.volt2, 0.0, 3.3, '#38BDF8', '#F59E0B', 'Heel V', 'Forefoot V');
+      requestAnimationFrame(drawCharts);
+    }
+    requestAnimationFrame(drawCharts);
+
+    // ── Primary Polling Loop (Fallback & Initial Load) ────
+    async function pollBridge() {
+      try {
+        const res = await fetch('/data');
+        if (res.ok) {
+          const data = await res.json();
+          handleReading(data);
+        } else {
+          setConnectionStatus('DISCONNECTED', 'Bridge returned ' + res.status);
+        }
+      } catch (err) {
+        setConnectionStatus('DISCONNECTED', 'Bridge unreachable at 127.0.0.1:8765');
+      }
+    }
+    setInterval(pollBridge, POLL_INTERVAL_MS);
+
+    // ── SSE Real-time Streaming (Ultra-low latency) ───────
+    function initSSE() {
+      try {
+        const evtSource = new EventSource('/events');
+        evtSource.onmessage = (e) => {
+          try {
+            const data = JSON.parse(e.data);
+            handleReading(data);
+          } catch (err) {}
+        };
+        evtSource.onerror = () => {
+          // SSE reconnects automatically, fallback pollBridge handles gaps
+        };
+      } catch (e) {
+        console.warn('SSE not supported, relying on HTTP polling.');
+      }
+    }
+    initSSE();
+    loadPorts();
+
+    // ── Export CSV Handler ────────────────────────────────
+    exportBtn.addEventListener('click', () => {
+      if (capturedSession.length === 0) {
+        alert('No sensor data recorded yet.');
+        return;
+      }
+      let csv = 'timestamp,raw1,voltage1,resistance1,raw2,voltage2,resistance2\n';
+      capturedSession.forEach(r => {
+        csv += `${r.time},${r.raw1},${r.volt1},${r.res1},${r.raw2},${r.volt2},${r.res2}\n`;
+      });
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `esp32_fsr_session_${new Date().toISOString().replace(/[:.]/g, '-')}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>

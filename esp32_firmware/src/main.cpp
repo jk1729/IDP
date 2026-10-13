@@ -5,10 +5,18 @@
 #include "protocol/device_status_packet.h"
 #include "protocol/live_data_packet.h"
 #include "protocol/risk_packet.h"
+#if SIMULATION_MODE
 #include "sensors/sensor_simulator.h"
+#else
+#include "sensors/real_fsr_sensor.h"
+#endif
 #include "vibration/vibration_controller.h"
 DeviceState deviceState;
+#if SIMULATION_MODE
 SensorSimulator sensors(42);
+#else
+RealFSRSensor sensors(FSR_HEEL_PIN, FSR_FOREFOOT_PIN);
+#endif
 BleManager ble(deviceState);
 VibrationController vibration(VIBRATION_PIN);
 unsigned long lastLive = 0;
@@ -18,7 +26,11 @@ void setup() {
   Serial.begin(115200);
   Serial.println("[BLE] Initializing...");
   sensors.begin(); vibration.begin(); ble.begin();
+#if SIMULATION_MODE
   Serial.println("[SENSOR] Simulation mode");
+#else
+  Serial.println("[SENSOR] Physical ESP32 FSR hardware mode (GPIO34, GPIO35)");
+#endif
   Serial.println("[BLE] Advertising started");
 }
 void loop() {
