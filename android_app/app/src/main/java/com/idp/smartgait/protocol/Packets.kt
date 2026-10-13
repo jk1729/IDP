@@ -31,7 +31,20 @@ data class LiveDataPacket(
     val forefoot: Float? = null,
     val acc: Float? = null,
     val cad: Float? = null,
-    val mode: String = ""
+    val mode: String = "",
+    val v1: Float? = null,
+    val r1: Float? = null,
+    val v2: Float? = null,
+    val r2: Float? = null
+)
+
+data class Esp32FsrReading(
+    val raw1: Int,
+    val v1: Float,
+    val r1: Float?,
+    val raw2: Int,
+    val v2: Float,
+    val r2: Float?
 )
 
 @Serializable

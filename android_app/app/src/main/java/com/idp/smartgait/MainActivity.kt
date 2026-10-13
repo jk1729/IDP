@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.ViewModelProvider
+import com.idp.smartgait.repository.Repository
 import com.idp.smartgait.ui.navigation.AppNavigation
 import com.idp.smartgait.ui.theme.SmartGaitTheme
 import com.idp.smartgait.viewmodel.MainViewModel
@@ -16,6 +17,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Repository.appContext = applicationContext
 
         // Request Bluetooth permissions
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

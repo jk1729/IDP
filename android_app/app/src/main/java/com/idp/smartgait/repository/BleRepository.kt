@@ -2,7 +2,11 @@ package com.idp.smartgait.repository
 
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothSocket
+import android.bluetooth.BluetoothDevice
+import android.content.Context
+import com.idp.smartgait.ble.BleScanner
+import com.idp.smartgait.ble.BleUuids
+import com.idp.smartgait.ble.GattDataSource
 import com.idp.smartgait.data.*
 import com.idp.smartgait.protocol.*
 import kotlinx.coroutines.*
@@ -12,7 +16,6 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
-import java.util.UUID
 import kotlin.math.abs
 
 interface RiskRepository {
@@ -38,6 +41,7 @@ enum class BleCommand(val wire: String) {
 }
 
 class Repository(
+    private val context: Context? = null,
     private val simulation: SimulationSource = SimulationSource(),
     private val bridgeEndpoints: List<String> = listOf(
         "http://10.0.2.2:8765/data",
@@ -61,11 +65,13 @@ class Repository(
     private var activeJob: Job? = null
     private var isSimulationMode = false
     private var workingEndpoint: String? = null
+    private var currentGatt: GattDataSource? = null
 
     companion object {
-        // Standard Bluetooth Serial Port Profile (SPP) UUID
-        val SPP_UUID: UUID = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB")
+        var appContext: Context? = null
     }
+
+    private val effectiveContext: Context? get() = context ?: appContext
 
     override suspend fun start() {
         if (activeJob?.isActive == true) return
@@ -79,52 +85,156 @@ class Repository(
         }
     }
 
-    private suspend fun runHardwarePipeline() {
-        // 1. Attempt direct Bluetooth Classic SPP if running on an Android device paired with ESP32_FSR
-        val btSuccess = tryDirectBluetoothClassic()
-        if (btSuccess) return
-
-        // 2. Otherwise, connect via the local Python bridge (ideal for emulator, PC testing, or networked setups)
-        runHardwareBridgeLoop()
-    }
-
     @SuppressLint("MissingPermission")
-    private suspend fun tryDirectBluetoothClassic(): Boolean {
-        try {
-            val adapter = BluetoothAdapter.getDefaultAdapter() ?: return false
-            if (!adapter.isEnabled) return false
+    private suspend fun runHardwarePipeline() {
+        val ctx = effectiveContext
+        val adapter = BluetoothAdapter.getDefaultAdapter()
 
-            val bondedDevices = adapter.bondedDevices ?: return false
-            val esp32Device = bondedDevices.firstOrNull {
-                it.name?.contains("ESP32_FSR", ignoreCase = true) == true
-            } ?: return false
+        // If running in an environment without Bluetooth hardware (e.g. pure emulator), fall back to bridge
+        if (adapter == null) {
+            runHardwareBridgeLoop()
+            return
+        }
 
-            _connection.value = ConnectionState.CONNECTING
-            var socket: BluetoothSocket? = null
-            try {
-                socket = esp32Device.createRfcommSocketToServiceRecord(SPP_UUID)
-                socket.connect()
-            } catch (e: Exception) {
-                socket?.close()
-                return false
+        while (activeJob?.isActive == true) {
+            if (!adapter.isEnabled) {
+                _connection.value = ConnectionState.ERROR
+                delay(2000)
+                continue
             }
 
-            _connection.value = ConnectionState.CONNECTED
-            val reader = BufferedReader(InputStreamReader(socket.inputStream))
+            _connection.value = ConnectionState.SCANNING
+
+            var targetDevice: BluetoothDevice? = null
+            val scanCompleter = CompletableDeferred<BluetoothDevice?>()
+
+            val scanner = BleScanner(
+                adapter = adapter,
+                onDevice = { result ->
+                    val device = result.device
+                    if (scanCompleter.isActive) {
+                        scanCompleter.complete(device)
+                    }
+                },
+                onError = { _ ->
+                    if (scanCompleter.isActive) {
+                        scanCompleter.complete(null)
+                    }
+                }
+            )
 
             try {
-                while (activeJob?.isActive == true) {
-                    val line = reader.readLine() ?: break
-                    emitFromCsvLine(line, esp32Device.name ?: "ESP32_FSR (Bluetooth)")
+                scanner.start()
+                // Wait up to 10 seconds for ESP32 discovery
+                withTimeoutOrNull(10000) {
+                    targetDevice = scanCompleter.await()
                 }
             } finally {
-                socket.close()
-                _connection.value = ConnectionState.DISCONNECTED
+                scanner.stop()
             }
-            return true
-        } catch (_: Exception) {
-            return false
+
+            if (activeJob?.isActive != true) break
+
+            if (targetDevice != null) {
+                val device = targetDevice!!
+                _connection.value = ConnectionState.CONNECTING
+
+                val gattSource = GattDataSource(ctx, device)
+                currentGatt = gattSource
+
+                try {
+                    coroutineScope {
+                        // Forward connection state from GATT datasource
+                        val stateJob = launch {
+                            gattSource.connectionState.collect { state ->
+                                _connection.value = state
+                            }
+                        }
+
+                        // Collect and parse live notifications from the ESP32
+                        val packetsJob = launch {
+                            gattSource.packets.collect { (uuid, bytes) ->
+                                if (uuid == BleUuids.FSR_CHARACTERISTIC) {
+                                    val text = bytes.toString(Charsets.UTF_8)
+                                    val packet = PacketParser.parseEsp32BleString(text)
+                                    if (packet != null) {
+                                        emitBleReadings(packet, device.name ?: BleUuids.DEVICE_NAME)
+                                    }
+                                }
+                            }
+                        }
+
+                        gattSource.connect()
+
+                        // Monitor connection while active
+                        while (activeJob?.isActive == true &&
+                            gattSource.connectionState.value != ConnectionState.DISCONNECTED &&
+                            gattSource.connectionState.value != ConnectionState.ERROR
+                        ) {
+                            delay(200)
+                        }
+
+                        stateJob.cancel()
+                        packetsJob.cancel()
+                    }
+                } finally {
+                    gattSource.close()
+                    currentGatt = null
+                }
+            }
+
+            _connection.value = ConnectionState.DISCONNECTED
+
+            // Controlled delay before retrying scan (prevents rapid retry loops)
+            if (activeJob?.isActive == true) {
+                delay(3000)
+            }
         }
+    }
+
+    private suspend fun emitBleReadings(packet: LiveDataPacket, deviceName: String) {
+        _lives.emit(packet)
+
+        val raw1 = packet.heel?.toInt() ?: 0
+        val raw2 = packet.forefoot?.toInt() ?: 0
+
+        _statuses.emit(
+            StatusPacket(
+                device = deviceName,
+                firmware = "1.0.0",
+                battery = 100,
+                connected = true,
+                uptime = packet.ts,
+                sensor_ready = true,
+                mode = "ESP32_BLE"
+            )
+        )
+
+        val total = raw1 + raw2
+        val imbalance = if (total > 50) abs(raw1 - raw2).toFloat() / total.toFloat() else 0f
+        val injuryScore = (imbalance * 70f).coerceIn(0f, 100f)
+        val level = when {
+            injuryScore >= 60f -> "HIGH"
+            injuryScore >= 35f -> "MODERATE"
+            else -> "LOW"
+        }
+
+        _risks.emit(
+            RiskPacket(
+                ts = packet.ts,
+                injury = injuryScore,
+                physio = 0f,
+                overall = injuryScore,
+                injury_level = level,
+                physio_level = "LOW",
+                overall_level = level,
+                status = "HARDWARE_ACTIVE",
+                alert = level == "HIGH",
+                alert_type = if (level == "HIGH") "INJURY" else "NONE",
+                priority = if (level == "HIGH") "HIGH" else "LOW",
+                message = if (level == "HIGH") "High gait loading imbalance detected on ESP32 FSRs." else ""
+            )
+        )
     }
 
     private suspend fun runHardwareBridgeLoop() {
@@ -144,7 +254,13 @@ class Repository(
                     val portName = jsonObj.optString("port", "ESP32_FSR")
                     val updatedTs = (jsonObj.optDouble("updated", System.currentTimeMillis() / 1000.0) * 1000).toLong()
 
-                    emitHardwareReadings(raw1, raw2, updatedTs, portName)
+                    val packet = LiveDataPacket(
+                        ts = updatedTs,
+                        heel = raw1.toFloat(),
+                        forefoot = raw2.toFloat(),
+                        mode = "BRIDGE_HARDWARE"
+                    )
+                    emitBleReadings(packet, portName)
                 } else {
                     _connection.value = ConnectionState.DISCONNECTED
                 }
@@ -152,74 +268,8 @@ class Repository(
                 _connection.value = ConnectionState.DISCONNECTED
             }
 
-            delay(100) // 100ms hardware polling matching ESP32 firmware rate
+            delay(200)
         }
-    }
-
-    private suspend fun emitFromCsvLine(line: String, deviceName: String) {
-        val parts = line.trim().split(",")
-        if (parts.size != 7 || parts[0] != "FSR" || parts[1] == "raw1") return
-
-        try {
-            val raw1 = parts[1].trim().toInt()
-            val raw2 = parts[4].trim().toInt()
-            if (raw1 in 0..4095 && raw2 in 0..4095) {
-                emitHardwareReadings(raw1, raw2, System.currentTimeMillis(), deviceName)
-            }
-        } catch (_: Exception) {}
-    }
-
-    private suspend fun emitHardwareReadings(raw1: Int, raw2: Int, timestamp: Long, deviceName: String) {
-        _lives.emit(
-            LiveDataPacket(
-                ts = timestamp,
-                hr = null,
-                temp = null,
-                heel = raw1.toFloat(),
-                forefoot = raw2.toFloat(),
-                acc = null,
-                cad = null,
-                mode = "ESP32_HARDWARE"
-            )
-        )
-
-        _statuses.emit(
-            StatusPacket(
-                device = deviceName,
-                firmware = "1.0.0",
-                battery = 100,
-                connected = true,
-                uptime = timestamp,
-                sensor_ready = true,
-                mode = "ESP32_HARDWARE"
-            )
-        )
-
-        val total = raw1 + raw2
-        val imbalance = if (total > 50) abs(raw1 - raw2).toFloat() / total.toFloat() else 0f
-        val injuryScore = (imbalance * 70f).coerceIn(0f, 100f)
-        val level = when {
-            injuryScore >= 60f -> "HIGH"
-            injuryScore >= 35f -> "MODERATE"
-            else -> "LOW"
-        }
-
-        _risks.emit(
-            RiskPacket(
-                ts = timestamp,
-                injury = injuryScore,
-                physio = 0f,
-                overall = injuryScore,
-                injury_level = level,
-                physio_level = "LOW",
-                overall_level = level,
-                status = "HARDWARE_ACTIVE",
-                alert = level == "HIGH",
-                alert_type = if (level == "HIGH") "INJURY" else "NONE",
-                priority = if (level == "HIGH") "HIGH" else "LOW",
-                message = if (level == "HIGH") "High gait loading imbalance detected on ESP32 FSRs." else ""
-            )
-        )
     }
 
     private suspend fun runSimulationLoop() {
@@ -281,17 +331,34 @@ class Repository(
     override suspend fun stop() {
         activeJob?.cancel()
         activeJob = null
+        currentGatt?.close()
+        currentGatt = null
         _connection.value = ConnectionState.DISCONNECTED
     }
 
-    override suspend fun sendCommand(command: BleCommand): Boolean = true
+    override suspend fun sendCommand(command: BleCommand): Boolean {
+        return currentGatt?.writeCommand(command) ?: true
+    }
 
     override fun selectScenario(s: SimulationScenario) {
         simulation.scenario = s
         isSimulationMode = true
         activeJob?.cancel()
+        currentGatt?.close()
+        currentGatt = null
         activeJob = CoroutineScope(Dispatchers.IO).launch {
             runSimulationLoop()
         }
     }
+
+    fun switchToHardware() {
+        isSimulationMode = false
+        activeJob?.cancel()
+        currentGatt?.close()
+        currentGatt = null
+        activeJob = CoroutineScope(Dispatchers.IO).launch {
+            runHardwarePipeline()
+        }
+    }
 }
+

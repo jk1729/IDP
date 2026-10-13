@@ -163,6 +163,28 @@ fun LiveScreen(state: AppState, vm: MainViewModel, selectedScenario: SimulationS
                 MetricCard(Icons.Rounded.Vibration, "Forefoot FSR", live?.forefoot?.fmt(), "", Modifier.weight(1f), iconTint = ElectricBlue)
             }
         }
+        if (live?.v1 != null || live?.v2 != null) {
+            item {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricCard(
+                        Icons.Rounded.Speed,
+                        "FSR1 (V / Ω)",
+                        live.v1?.let { "%.2fV".format(it) } ?: "—",
+                        live.r1?.let { " • %.0fΩ".format(it) } ?: " • Open",
+                        Modifier.weight(1f),
+                        iconTint = ElectricBlueGlow
+                    )
+                    MetricCard(
+                        Icons.Rounded.Speed,
+                        "FSR2 (V / Ω)",
+                        live.v2?.let { "%.2fV".format(it) } ?: "—",
+                        live.r2?.let { " • %.0fΩ".format(it) } ?: " • Open",
+                        Modifier.weight(1f),
+                        iconTint = ElectricBlue
+                    )
+                }
+            }
+        }
         item {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricCard(Icons.Rounded.DirectionsWalk, "Cadence", live?.cad?.fmt(), "steps/min", Modifier.weight(1f), iconTint = RiskLow)
@@ -196,7 +218,7 @@ fun LiveScreen(state: AppState, vm: MainViewModel, selectedScenario: SimulationS
         } else {
             item { ChartCard("Heart Rate", state.samples.mapNotNull { it.hr }, 0f, 180f, RiskHigh, "BPM") }
             item { ChartCard("Temperature", state.samples.mapNotNull { it.temp }, 30f, 42f, RiskModerate, "°C") }
-            item { DualChartCard("Heel vs Forefoot Pressure", state.samples.mapNotNull { it.heel }, state.samples.mapNotNull { it.forefoot }, 0f, 600f) }
+            item { DualChartCard("Heel vs Forefoot Pressure", state.samples.mapNotNull { it.heel }, state.samples.mapNotNull { it.forefoot }, 0f, 4095f) }
             item { ChartCard("Cadence", state.samples.mapNotNull { it.cad }, 0f, 220f, ElectricBlueGlow, "steps/min") }
             item { ChartCard("Acceleration", state.samples.mapNotNull { it.acc }, 0f, 3f, RiskLow, "m/s²") }
             item { RiskChartCard("Injury Risk Trend", state.riskHistory.map { it.injury }, currentColor = riskColor(risk?.injury ?: 0f)) }
